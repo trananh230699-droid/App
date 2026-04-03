@@ -43,49 +43,52 @@ def add_log(status):
         json.dump(logs[-5:], f)
 
 # ==========================================
-# GIAO DIỆN CYBER & TERMINAL HACKER
-# ==========================================
-cyber_css = """
-    <style>
-    .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
-    
-    .codx-header { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); padding: 15px 25px; border-radius: 8px; color: #33ff33; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(51, 255, 51, 0.2); border: 1px solid #33ff33;}
-    .codx-title { font-size: 22px; font-weight: 700; margin: 0; text-shadow: 0 0 10px #33ff33;}
-    .codx-card { background-color: #0f0f0f; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(51, 255, 51, 0.1); border: 1px solid #1a1a1a; }
-    
-    .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
-    
-    .log-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; color: #33ff33; }
-    .log-table th, .log-table td { border: 1px solid #114411; padding: 6px; text-align: center; }
-    .log-table th { background-color: #002200; color: #55ff55; }
-    .stat-ok { color: #00ff00; font-weight: bold; }
-    .stat-fail { color: #ff3333; font-weight: bold; }
-    
-    .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
-    .stButton>button { background-color: #0f0f0f; color: #33ff33; border: 1px solid #33ff33; font-family: 'Consolas', monospace; font-weight: bold; transition: 0.3s; width: 100%;}
-    .stButton>button:hover { background-color: #33ff33; color: #000; box-shadow: 0 0 15px #33ff33; }
-    
-    .terminal-load { font-family: 'Consolas', monospace; color: #33ff33; font-size: 15px; line-height: 1.6; background: #000; padding: 20px; border-radius: 5px; border: 1px solid #33ff33; margin-bottom: 20px; text-align: left; }
-    
-    footer, #MainMenu, header {visibility: hidden;}
-    </style>
-"""
-st.markdown(cyber_css, unsafe_allow_html=True)
-
-# ==========================================
-# QUẢN LÝ TRẠNG THÁI (SESSION STATE)
+# QUẢN LÝ TRẠNG THÁI (SESSION STATE) & F5
 # ==========================================
 query_role = st.query_params.get("role", "")
 
 if "system_auth" not in st.session_state:
-    # Nếu F5 và đã có role, tự động đánh dấu đã qua cửa bảo mật
     st.session_state.system_auth = (query_role in ["Admin", "Guest"])
-
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = (query_role in ["Admin", "Guest"])
-
 if "role" not in st.session_state:
     st.session_state.role = query_role if query_role in ["Admin", "Guest"] else None
+
+# ==========================================
+# GIAO DIỆN CSS: TÁCH BIỆT HACKER VÀ LÀM VIỆC
+# ==========================================
+if not st.session_state.logged_in:
+    # ---------------- CSS HACKER (KHI CHƯA ĐĂNG NHẬP) ----------------
+    css_code = """
+        <style>
+        .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
+        .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
+        .log-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; color: #33ff33; }
+        .log-table th, .log-table td { border: 1px solid #114411; padding: 6px; text-align: center; }
+        .log-table th { background-color: #002200; color: #55ff55; }
+        .stat-ok { color: #00ff00; font-weight: bold; }
+        .stat-fail { color: #ff3333; font-weight: bold; }
+        .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
+        .stButton>button { background-color: #0f0f0f; color: #33ff33; border: 1px solid #33ff33; font-family: 'Consolas', monospace; font-weight: bold; transition: 0.3s; width: 100%;}
+        .stButton>button:hover { background-color: #33ff33; color: #000; box-shadow: 0 0 15px #33ff33; }
+        .terminal-load { font-family: 'Consolas', monospace; color: #33ff33; font-size: 15px; line-height: 1.6; background: #000; padding: 20px; border-radius: 5px; border: 1px solid #33ff33; margin-bottom: 20px; text-align: left; }
+        footer, #MainMenu, header {visibility: hidden;}
+        </style>
+    """
+else:
+    # ---------------- CSS HIỆN ĐẠI (KHI ĐÃ ĐĂNG NHẬP VÀO LÀM VIỆC) ----------------
+    css_code = """
+        <style>
+        .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
+        .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
+        .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
+        .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; letter-spacing: 0px; text-align: left;}
+        .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
+        footer, #MainMenu, header {visibility: hidden;}
+        </style>
+    """
+st.markdown(css_code, unsafe_allow_html=True)
 
 # ==========================================
 # GIAI ĐOẠN 1: MÀN HÌNH NHẬP MÃ BẢO MẬT "CY"
@@ -99,7 +102,6 @@ if not st.session_state.system_auth:
             
     st.markdown("### 🖥️ HỆ THỐNG GIÁM SÁT AN NINH MẠNG")
     
-    # HIỂN THỊ LOG TRUY CẬP
     st.markdown("<div style='text-align:left; font-size:13px; margin-bottom:5px;'>[ 5 LỊCH SỬ TRUY CẬP GẦN NHẤT ]:</div>", unsafe_allow_html=True)
     logs = get_logs()
     if not logs:
@@ -122,19 +124,21 @@ if not st.session_state.system_auth:
             if sys_pwd == "CY":
                 add_log("SUCCESS")
                 
-                # HIỆU ỨNG LOADING CHẠY NGANG (CỐ ĐỊNH BOX)
+                # HIỆU ỨNG LOADING CHẠY NGANG - MÀU MÈ, CHUYÊN NGHIỆP HƠN
                 loader = st.empty()
-                base_txt = "> Initializing secure protocol... [OK]<br>> Bypassing node security... [OK]<br>> <b>DECRYPTING MAINFRAME:</b><br><br>"
+                base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
+                spinners = ['|', '/', '-', '\\']
                 
                 for i in range(1, 21):
                     bar_fill = "█" * i
                     bar_empty = "-" * (20 - i)
                     pct = i * 5
-                    html_load = f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}%</span></div>'
+                    spin = spinners[i % 4]
+                    html_load = f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}% {spin}</span></div>'
                     loader.markdown(html_load, unsafe_allow_html=True)
                     time.sleep(0.15)
                 
-                loader.markdown(f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> ACCESS GRANTED. PROCEED TO ROLE SELECTION.</div>', unsafe_allow_html=True)
+                loader.markdown(f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> <span style="color:#00e5ff;">ACCESS GRANTED. PROCEED TO ROLE SELECTION.</span></div>', unsafe_allow_html=True)
                 time.sleep(0.8)
                 
                 st.session_state.system_auth = True
@@ -165,41 +169,28 @@ if st.session_state.system_auth and not st.session_state.logged_in:
     if st.button("👁️ TRUY CẬP KHÁCH (CHỈ XEM)", use_container_width=True):
         st.session_state.role = "Guest"
         st.session_state.logged_in = True
-        st.query_params["role"] = "Guest" # Đánh dấu F5
+        st.query_params["role"] = "Guest" 
         st.rerun()
         
     st.markdown("<hr style='border-color:#114411;'>", unsafe_allow_html=True)
     
     with st.form("admin_auth_form"):
         pwd = st.text_input("MẬT KHẨU ADMIN:", type="password")
-        submit_admin = st.form_submit_button("🔓 ĐĂNG NHẬP NỘI BỘ")
+        submit_admin = st.form_submit_button("🔓 ĐĂNG NHẬP NỘI BỘ (Enter)")
         if submit_admin:
             if pwd == "123":
                 st.session_state.role = "Admin"
                 st.session_state.logged_in = True
-                st.query_params["role"] = "Admin" # Đánh dấu F5
+                st.query_params["role"] = "Admin" 
                 st.rerun()
             else:
                 st.error("🚨 Sai mật khẩu Admin!")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-
 # ==========================================
 # GIAI ĐOẠN 3: ỨNG DỤNG LÀM VIỆC CHÍNH THỨC
 # ==========================================
-# CSS cho Bảng làm việc dễ nhìn hơn (sáng sủa các thẻ input)
-cyber_work_css = """
-    <style>
-    .stTextInput input { background-color: #0f0f0f !important; border: 1px solid #1a1a1a !important; text-align: left; letter-spacing: 0px;}
-    .stTextInput input:focus { border-color: #33ff33 !important; }
-    </style>
-"""
-st.markdown(cyber_work_css, unsafe_allow_html=True)
-
-# ------------------------------------------
-# KẾT NỐI GSHEETS (CHỐNG LỖI 400 TRIỆT ĐỂ)
-# ------------------------------------------
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -220,25 +211,26 @@ def phan_loai(row):
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # BỎ HOÀN TOÀN worksheet VÀ usecols ĐỂ GOOGLE KHÔNG CHẶN SQL PARSE (TRÁNH LỖI 400)
+        # Chống lỗi 400 bằng cách đọc sạch sẽ và bóc đúng 6 cột
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
-        # Tự cắt lấy 5 cột bằng Pandas (Nếu bảng có đủ cột)
-        if len(df_raw.columns) >= 6:
-            df = df_raw.iloc[:, 1:6].copy()
+        if len(df_raw.columns) >= 7:
+            df = df_raw.iloc[:, 1:7].copy() # Lấy 6 cột: B, C, D, E, F, G
         else:
             df = df_raw.copy()
             
-        # Đề phòng trường hợp thiếu cột
-        while len(df.columns) < 5:
+        while len(df.columns) < 6:
             df[f"Cot_{len(df.columns)}"] = ""
             
-        df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]
+        # Thêm cột Lĩnh Vực vào vị trí thứ 6
+        df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]
         df = df.dropna(subset=['TEN_BAO_CAO'])
         
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].fillna("Không xác định")
         df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].fillna("Chưa xử lý")
         df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].fillna("Không xác định")
+        df['LINH_VUC'] = df['LINH_VUC'].fillna("Không xác định")
+        
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], errors='coerce')
         df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
         
@@ -247,7 +239,6 @@ def load_data():
         return df
     except Exception as e:
         st.error(f"❌ LỖI ĐỌC GOOGLE SHEETS: {e}")
-        st.info("Hãy kiểm tra lại quyền truy cập (Share) của file Google Sheets cho email Service Account.")
         st.stop()
 
 if "df_master" not in st.session_state:
@@ -260,14 +251,14 @@ if "editor_key" not in st.session_state:
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
-    if os.path.exists("logo.png"): st.image("logo.png", width=120)
+    if os.path.exists("logo.png"): st.image("logo.png", width=90)
 
 with col_r:
     r_txt = "Admin (Nội bộ)" if st.session_state.role == "Admin" else "Khách (Chỉ xem)"
     st.markdown(f"""
     <div class="codx-header">
         <p class="codx-title">☑️ HỆ THỐNG QUẢN TRỊ CÔNG VIỆC CAP AN KHÁNH</p>
-        <p style="margin:0; opacity:0.8;">Quyền truy cập: <b style="color:#fff;">{r_txt}</b></p>
+        <p style="margin:0; opacity:0.9;">Quyền truy cập hiện tại: <b>{r_txt}</b></p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -277,7 +268,7 @@ if st.sidebar.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary"):
     st.rerun()
 
 with st.sidebar:
-    st.header("🔍 BỘ LỌC")
+    st.header("🔍 BỘ LỌC TÌM KIẾM")
     txt_search = st.text_input("Tên báo cáo:")
     
     k_list = st.session_state.df_master['KY_BAO_CAO'].unique().tolist()
@@ -296,6 +287,9 @@ with st.sidebar:
     dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
     sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
     
+    lv_opts = st.session_state.df_master['LINH_VUC'].unique().tolist()
+    sel_lv = st.multiselect("Lĩnh vực:", lv_opts, default=lv_opts)
+    
     st.divider()
     if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
         st.cache_data.clear()
@@ -311,12 +305,13 @@ mask = (
     st.session_state.df_master['KY_BAO_CAO'].apply(chk_ky) &
     st.session_state.df_master['THANG'].isin(sel_thang) &
     st.session_state.df_master['CANH_BAO'].isin(sel_tt) &
-    st.session_state.df_master['DON_VI_YEU_CAU'].isin(sel_dv)
+    st.session_state.df_master['DON_VI_YEU_CAU'].isin(sel_dv) &
+    st.session_state.df_master['LINH_VUC'].isin(sel_lv)
 )
 df_filtered = st.session_state.df_master[mask].copy()
 
 # ------------------------------------------
-# HIỂN THỊ BẢNG
+# HIỂN THỊ BẢNG VÀ CHỨC NĂNG SẮP XẾP A-Z
 # ------------------------------------------
 metric_container = st.container()
 st.markdown("<br>", unsafe_allow_html=True)
@@ -326,10 +321,40 @@ with col_main:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
-    df_filtered = df_filtered.sort_values(by='DEADLINE', ascending=True, na_position='last').reset_index(drop=True)
+    # --- BỘ CÔNG CỤ SẮP XẾP A-Z ---
+    st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A)")
+    c_s1, c_s2 = st.columns([1.5, 2])
     
+    sort_opts = [
+        "Mặc định (Không sắp xếp)", "Tên công việc", "Kỳ báo cáo", 
+        "Hạn chót", "Trạng thái gốc", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
+    ]
+    with c_s1:
+        sort_col = st.selectbox("Sắp xếp theo:", sort_opts)
+    with c_s2:
+        sort_asc = st.radio("Thứ tự:", ["A-Z (Tăng dần)", "Z-A (Giảm dần)"], horizontal=True)
+
+    col_map = {
+        "Tên công việc": "TEN_BAO_CAO", 
+        "Kỳ báo cáo": "KY_BAO_CAO", 
+        "Hạn chót": "DEADLINE", 
+        "Trạng thái gốc": "TRANG_THAI_GOC", 
+        "Đơn vị yêu cầu báo cáo": "DON_VI_YEU_CAU",
+        "Lĩnh vực": "LINH_VUC"
+    }
+    
+    if sort_col != "Mặc định (Không sắp xếp)":
+        is_asc = True if sort_asc == "A-Z (Tăng dần)" else False
+        df_filtered = df_filtered.sort_values(
+            by=col_map[sort_col], 
+            ascending=is_asc, 
+            na_position='last'
+        )
+    df_filtered = df_filtered.reset_index(drop=True)
+    
+    # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
-        st.info("💡 Bấm **LƯU LÊN CLOUD** để đẩy dữ liệu lên Google Sheets.")
+        st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU LÊN CLOUD** để đẩy dữ liệu lên Google Sheets.")
         df_filtered.insert(0, "🗑️ Xóa", False)
 
         c_cols = {
@@ -340,7 +365,8 @@ with col_main:
             "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
             "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"]),
             "CANH_BAO": st.column_config.TextColumn("Tình trạng", disabled=True),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu")
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
         }
 
         edited_df = st.data_editor(
@@ -363,11 +389,12 @@ with col_main:
             st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
             st.session_state.df_master.at[m_idx, 'TRANG_THAI_GOC'] = row['TRANG_THAI_GOC']
             st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
+            st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
             st.session_state.df_master.at[m_idx, 'CANH_BAO'] = phan_loai(row)
 
         if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
             try:
-                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]].copy()
+                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
                 df_to_save.insert(0, "STT_ID", range(1, len(df_to_save) + 1))
                 conn.update(worksheet="Data", data=df_to_save)
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
@@ -377,9 +404,9 @@ with col_main:
             except Exception as e:
                 st.error(f"🚨 LỖI LƯU CLOUD: {e}")
     else:
-        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only).")
+        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only). Bấm vào tiêu đề cột trên bảng để Sắp xếp A-Z trực tiếp.")
         st.dataframe(
-            df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "CANH_BAO", "DON_VI_YEU_CAU"]],
+            df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "CANH_BAO", "DON_VI_YEU_CAU", "LINH_VUC"]],
             use_container_width=True, hide_index=True,
             column_config={
                 "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY")
@@ -410,7 +437,7 @@ with col_sub:
     
     if total > 0:
         fig = px.pie(df_filtered, names='CANH_BAO', hole=0.5, color='CANH_BAO', color_discrete_map=mau_bd)
-        fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#33ff33'))
+        fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div><br>', unsafe_allow_html=True)
 
@@ -430,11 +457,74 @@ with col_sub:
         html_cal += '<tr>'
         for day in week:
             if day == 0: html_cal += '<td></td>'
-            elif day == now.day: html_cal += f'<td style="background-color:rgba(51, 255, 51, 0.3); border-radius:50%; font-weight:bold;">{day}</td>'
-            elif day in dls: html_cal += f'<td style="background-color:#EF4444; border-radius:50%; font-weight:bold; color:#000;">{day}</td>'
+            elif day == now.day: html_cal += f'<td style="background-color:#0078D7; border-radius:50%; font-weight:bold; color:#fff;">{day}</td>'
+            elif day in dls: html_cal += f'<td style="background-color:#EF4444; border-radius:50%; font-weight:bold; color:#fff;">{day}</td>'
             else: html_cal += f'<td>{day}</td>'
         html_cal += '</tr>'
     html_cal += '</table>'
     st.markdown(html_cal, unsafe_allow_html=True)
-    st.caption("🔴 Đỏ: Hạn nộp - 🟢 Xanh: Hôm nay")
+    st.caption("🔴 Đỏ: Hạn nộp - 🔵 Xanh: Hôm nay")
     st.markdown('</div>', unsafe_allow_html=True)
+
+# ==========================================
+# 8. THÊM BÁO CÁO MỚI (CHỈ DÀNH CHO ADMIN)
+# ==========================================
+if st.session_state.role == "Admin":
+    with col_main:
+        st.markdown("<br>", unsafe_allow_html=True)
+        k_map = {
+            "Tháng 01": "2026-01-10", "Tháng 02": "2026-02-10", "Tháng 03": "2026-03-10", "Quý 1": "2026-03-10",
+            "Tháng 04": "2026-04-10", "Tháng 05": "2026-05-10", "6 Tháng": "2026-06-10", "Tháng 06": "2026-06-10",
+            "Tháng 07": "2026-07-10", "Tháng 08": "2026-08-10", "Tháng 09": "2026-09-10", "Quý 3": "2026-09-10",
+            "Tháng 10": "2026-10-10", "Tháng 11": "2026-11-10", "Tháng 12": "2026-12-10", "Tổng kết năm": "2026-12-10"
+        }
+
+        with st.expander("➕ THÊM BÁO CÁO MỚI (Mở Form)"):
+            with st.form("form_them", clear_on_submit=True):
+                c_t1, c_t2, c_t3 = st.columns([2, 1, 1])
+                with c_t1: f_ten = st.text_input("Tên báo cáo *")
+                with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
+                with c_t3: f_lv = st.text_input("Lĩnh vực")
+                
+                c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
+                with c_f1: 
+                    f_k = st.multiselect("Kỳ báo cáo", options=list(k_map.keys()))
+                with c_f2: 
+                    f_d = st.date_input("Hạn chót", value=datetime.date.today())
+                with c_f3: 
+                    f_tt = st.selectbox("Trạng thái", ["Chưa xử lý", "Đang thực hiện", "Hoàn thành"])
+                
+                if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
+                    if f_ten:
+                        new_data = []
+                        max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                        dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
+                        lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
+
+                        if f_k:
+                            for k in f_k:
+                                max_id += 1
+                                m_date = k_map.get(k)
+                                d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
+                                
+                                new_data.append({
+                                    "_ID": max_id, "TEN_BAO_CAO": f_ten, 
+                                    "KY_BAO_CAO": k, "DEADLINE": d_val, 
+                                    "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                                })
+                        else:
+                            max_id += 1
+                            new_data.append({
+                                "_ID": max_id, "TEN_BAO_CAO": f_ten, 
+                                "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
+                                "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                            })
+
+                        n_df = pd.DataFrame(new_data)
+                        n_df['THANG'] = n_df['DEADLINE'].dt.month.fillna(0).astype(int)
+                        n_df['CANH_BAO'] = n_df.apply(phan_loai, axis=1)
+                        st.session_state.df_master = pd.concat(
+                            [st.session_state.df_master, n_df], 
+                            ignore_index=True
+                        )
+                        st.rerun()
