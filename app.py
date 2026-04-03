@@ -11,17 +11,53 @@ from streamlit_gsheets import GSheetsConnection
 # ==========================================
 # CẤU HÌNH TRANG LÀM VIỆC
 # ==========================================
-st.set_page_config(page_title="Hệ thống Quản trị - Công an phường An Khánh", page_icon="☑️", layout="wide")
+st.set_page_config(
+    page_title="Hệ thống Quản trị - Công an phường An Khánh", 
+    page_icon="☑️", 
+    layout="wide"
+)
 
 st.markdown("""
     <style>
     .stApp { background-color: #F4F7F9; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 20px 30px; border-radius: 12px; color: white; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .codx-header { 
+        background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); 
+        padding: 20px 30px; 
+        border-radius: 12px; 
+        color: white; 
+        margin-bottom: 25px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+    }
     .codx-title { font-size: 24px; font-weight: 700; margin: 0; }
-    .codx-card { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
-    .login-box { max-width: 400px; margin: 80px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #005B9F;}
-    .divider-text { display: flex; align-items: center; text-align: center; color: #888; margin: 20px 0; }
-    .divider-text::before, .divider-text::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
+    .codx-card { 
+        background-color: white; 
+        padding: 20px; 
+        border-radius: 12px; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+        border: 1px solid #EAECEF; 
+    }
+    .login-box { 
+        max-width: 400px; 
+        margin: 80px auto; 
+        padding: 30px; 
+        background: white; 
+        border-radius: 12px; 
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+        text-align: center; 
+        border-top: 5px solid #005B9F;
+    }
+    .divider-text { 
+        display: flex; 
+        align-items: center; 
+        text-align: center; 
+        color: #888; 
+        margin: 20px 0; 
+    }
+    .divider-text::before, .divider-text::after { 
+        content: ''; 
+        flex: 1; 
+        border-bottom: 1px solid #eee; 
+    }
     .divider-text:not(:empty)::before { margin-right: .25em; }
     .divider-text:not(:empty)::after { margin-left: .25em; }
     </style>
@@ -36,18 +72,21 @@ if "system_unlocked" not in st.session_state:
 if not st.session_state.system_unlocked:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.markdown("### 🔒 XÁC THỰC HỆ THỐNG")
-    st.markdown("<p style='color: gray;'>Vui lòng nhập mã bảo mật hệ thống để truy cập ứng dụng.</p>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color: gray;'>Vui lòng nhập mã bảo mật hệ thống để truy cập ứng dụng.</p>", 
+        unsafe_allow_html=True
+    )
     
     sys_pwd = st.text_input("Mã bảo mật (App Key):", type="password")
     if st.button("Mở khóa ứng dụng 🔑", use_container_width=True, type="primary"):
-        # Thay 'matkhauhethong' bằng mật khẩu bạn muốn dùng để mở app
+        # MẬT KHẨU HỆ THỐNG Ở ĐÂY
         if sys_pwd == "matkhauhethong": 
             st.session_state.system_unlocked = True
             st.rerun()
         else:
             st.error("🚨 Mã xác thực hệ thống không đúng!")
     st.markdown('</div>', unsafe_allow_html=True)
-    st.stop() # Dừng toàn bộ web nếu chưa qua cửa này
+    st.stop()
 
 # ==========================================
 # 2. MÀN HÌNH CHỌN QUYỀN (ADMIN / GUEST)
@@ -59,7 +98,8 @@ if "role" not in st.session_state:
 
 if not st.session_state.logged_in:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    if os.path.exists("logo.png"): st.image("logo.png", width=80)
+    if os.path.exists("logo.png"): 
+        st.image("logo.png", width=80)
     st.markdown("### HỆ THỐNG QUẢN TRỊ")
     st.markdown("<p style='color: gray; margin-bottom: 20px;'>Công an phường An Khánh</p>", unsafe_allow_html=True)
     
@@ -94,19 +134,32 @@ today = pd.Timestamp.today().normalize()
 def phan_loai(row):
     tt = str(row['TRANG_THAI_GOC']).upper()
     tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
-    if "HOAN THANH" in tt_norm: return "✅ HOÀN THÀNH"
-    if pd.isna(row['DEADLINE']): return "⏳ ĐANG THỰC HIỆN"
+    
+    if "HOAN THANH" in tt_norm: 
+        return "✅ HOÀN THÀNH"
+    if pd.isna(row['DEADLINE']): 
+        return "⏳ ĐANG THỰC HIỆN"
+        
     days_diff = (row['DEADLINE'] - today).days
-    if days_diff < 0: return "🚨 TRỄ HẠN"
-    if 0 <= days_diff <= 5: return "🔥 CẦN LÀM GẤP"
+    if days_diff < 0: 
+        return "🚨 TRỄ HẠN"
+    if 0 <= days_diff <= 5: 
+        return "🔥 CẦN LÀM GẤP"
+        
     return "⏳ ĐANG THỰC HIỆN"
 
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # Lấy từ cột B đến F (tương ứng index 1 đến 5 trong gsheets)
-        df = conn.read(spreadsheet=SPREADSHEET_URL, worksheet="Data", usecols=[1, 2, 3, 4, 5])
-        df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]
+        df = conn.read(
+            spreadsheet=SPREADSHEET_URL, 
+            worksheet="Data", 
+            usecols=[1, 2, 3, 4, 5]
+        )
+        df.columns = [
+            "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
+            "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
+        ]
         df = df.dropna(subset=['TEN_BAO_CAO'])
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].fillna("Không xác định")
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], errors='coerce')
@@ -130,8 +183,10 @@ if "editor_key" not in st.session_state:
 # ==========================================
 col_l, col_r = st.columns([1, 8])
 with col_l:
-    if os.path.exists("logo.png"): st.image("logo.png", width=90)
-    else: st.write("📌 **LOGO**")
+    if os.path.exists("logo.png"): 
+        st.image("logo.png", width=90)
+    else: 
+        st.write("📌 **LOGO**")
 
 with col_r:
     role_text = "Quản trị viên (Admin)" if st.session_state.role == "Admin" else "Khách (Chỉ xem)"
@@ -155,4 +210,76 @@ with st.sidebar:
     sel_ky = st.multiselect("Lọc theo Kỳ:", list(all_kys), default=list(all_kys))
     
     thang_list = sorted([m for m in st.session_state.df_master['THANG'].unique() if m != 0])
-    sel_thang = st.multiselect("Lọc theo Tháng:", options=thang_list + [0], default=thang_list + [0], format_func=lambda
+    thang_options = thang_list + [0]
+    
+    # HÀM HIỂN THỊ THÁNG ĐƯỢC VIẾT RÕ RÀNG (CHỐNG LỖI LAMBDA CỦA BẠN)
+    def format_thang_func(x):
+        if x != 0:
+            return f"Tháng {x}"
+        return "Chưa có hạn nộp"
+
+    sel_thang = st.multiselect(
+        "Lọc theo Tháng:", 
+        options=thang_options, 
+        default=thang_options, 
+        format_func=format_thang_func
+    )
+    
+    tt_list = ["🚨 TRỄ HẠN", "🔥 CẦN LÀM GẤP", "⏳ ĐANG THỰC HIỆN", "✅ HOÀN THÀNH"]
+    sel_tt = st.multiselect("Lọc Trạng thái:", tt_list, default=tt_list)
+
+    dv_list = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
+    sel_dv = st.multiselect("Lọc Đơn vị yêu cầu:", dv_list, default=dv_list)
+    
+    st.divider()
+    if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
+        st.cache_data.clear()
+        st.session_state.df_master = load_data() 
+        st.rerun()
+
+def check_ky(row_ky):
+    if not sel_ky: return False
+    return any(k in str(row_ky) for k in sel_ky)
+
+mask = (
+    st.session_state.df_master['TEN_BAO_CAO'].str.contains(txt_search, case=False, na=False) &
+    st.session_state.df_master['KY_BAO_CAO'].apply(check_ky) &
+    st.session_state.df_master['THANG'].isin(sel_thang) &
+    st.session_state.df_master['CANH_BAO'].isin(sel_tt) &
+    st.session_state.df_master['DON_VI_YEU_CAU'].isin(sel_dv)
+)
+df_filtered = st.session_state.df_master[mask].copy()
+
+# ==========================================
+# 5. KHU VỰC HIỂN THỊ BẢNG & LƯU CLOUD
+# ==========================================
+metric_container = st.container()
+st.markdown("<br>", unsafe_allow_html=True)
+col_main, col_sub = st.columns([2.4, 1.0])
+
+with col_main:
+    st.markdown('<div class="codx-card">', unsafe_allow_html=True)
+    st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
+    
+    st.markdown("###### ↕️ BỘ CÔNG CỤ SẮP XẾP NHANH")
+    c_s1, c_s2 = st.columns([1.5, 2])
+    
+    danh_sach_cot_sap_xep = [
+        "Mặc định (Không sắp xếp)", "Tên công việc", 
+        "Kỳ báo cáo", "Hạn chót", "Trạng thái gốc", 
+        "Đơn vị yêu cầu báo cáo"
+    ]
+    with c_s1:
+        sort_col = st.selectbox("Sắp xếp theo:", danh_sach_cot_sap_xep)
+    with c_s2:
+        sort_asc = st.radio(
+            "Thứ tự:", 
+            ["Tăng dần (A-Z / Cũ-Mới)", "Giảm dần (Z-A / Mới-Cũ)"], 
+            horizontal=True
+        )
+
+    col_map = {
+        "Tên công việc": "TEN_BAO_CAO", 
+        "Kỳ báo cáo": "KY_BAO_CAO", 
+        "Hạn chót": "DEADLINE", 
+        "Trạng thái gốc": "TRANG_
