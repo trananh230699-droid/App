@@ -29,20 +29,20 @@ if not st.session_state.system_unlocked:
     st.markdown("""
         <style>
         .stApp { background-color: #050505; color: #00FF00; font-family: 'Consolas', 'Courier New', monospace; }
-        .stTextInput input { background-color: #000000 !important; color: #00FF00 !important; border: 1px solid #00FF00 !important; font-family: 'Consolas', 'Courier New', monospace !important; }
-        .stButton>button { background-color: #000000; color: #00FF00; border: 1px solid #00FF00; font-family: 'Consolas', 'Courier New', monospace; width: 100%; font-weight: bold; }
-        .stButton>button:hover { background-color: #00FF00; color: #000000; }
-        .term-box { max-width: 700px; margin: 40px auto; padding: 20px; border: 1px solid #003300; box-shadow: 0 0 15px #00FF0033; }
+        .stTextInput input { background-color: #000000 !important; color: #00FF00 !important; border: 1px solid #00FF00 !important; font-family: 'Consolas', 'Courier New', monospace !important; text-align: center; font-size: 18px !important; letter-spacing: 2px;}
+        .stButton>button { background-color: #000000; color: #00FF00; border: 1px solid #00FF00; font-family: 'Consolas', 'Courier New', monospace; width: 100%; font-weight: bold; letter-spacing: 1px; transition: all 0.3s;}
+        .stButton>button:hover { background-color: #00FF00; color: #000000; box-shadow: 0 0 10px #00FF00; }
+        .term-box { max-width: 750px; margin: 30px auto; padding: 30px; border: 1px solid #004400; box-shadow: 0 0 25px #00FF0022; background: #020202; border-radius: 5px;}
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="term-box">', unsafe_allow_html=True)
     
-    # Hiển thị Logo
-    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
+    # Hiển thị Logo (Đã được căn giữa và thu nhỏ hợp lý)
+    col_logo1, col_logo2, col_logo3 = st.columns([3, 1, 3])
     with col_logo2:
         if os.path.exists("logo.png"):
-            st.image("logo.png", use_container_width=True)
+            st.image("logo.png", width=90)
     
     # Text phong cách terminal
     st.markdown("""
@@ -59,12 +59,39 @@ if not st.session_state.system_unlocked:
     # Bọc vào Form để cho phép bấm Enter
     with st.form("terminal_login"):
         sys_pwd = st.text_input("[?] VUI LONG NHAP MAT KHAU DE KICH HOAT:", type="password")
-        submit = st.form_submit_button("XÁC NHẬN (Nhấn Enter)")
+        submit = st.form_submit_button("XAC NHAN (Nhan Enter)")
         
         if submit:
             if sys_pwd == "CY": 
-                st.success("[OK] XAC THUC THANH CONG. DANG MO KHOA DU LIEU MA HOA...")
-                time.sleep(1) # Tạo cảm giác hệ thống đang tải
+                # HIỆU ỨNG LOADING HACKER CHUYÊN NGHIỆP
+                status_placeholder = st.empty()
+                status_placeholder.markdown("```text\n> VERIFYING CREDENTIALS... [ OK ]\n```")
+                time.sleep(0.4)
+                status_placeholder.markdown("```text\n> VERIFYING CREDENTIALS... [ OK ]\n> ESTABLISHING SECURE CONNECTION... [ OK ]\n```")
+                time.sleep(0.4)
+                
+                # Chạy thanh tiến trình ảo
+                for i in range(1, 16):
+                    bar_filled = "█" * i
+                    bar_empty = "-" * (15 - i)
+                    pct = int((i / 15) * 100)
+                    status_placeholder.markdown(f"""```text
+> VERIFYING CREDENTIALS... [ OK ]
+> ESTABLISHING SECURE CONNECTION... [ OK ]
+> DECRYPTING SYSTEM DATABASE:
+  [{bar_filled}{bar_empty}] {pct}%
+```""")
+                    time.sleep(0.08)
+                
+                status_placeholder.markdown("""```text
+> VERIFYING CREDENTIALS... [ OK ]
+> ESTABLISHING SECURE CONNECTION... [ OK ]
+> DECRYPTING SYSTEM DATABASE:
+  [███████████████] 100%
+> ACCESS GRANTED. INITIALIZING SERVER...
+```""")
+                time.sleep(0.6)
+                
                 st.session_state.system_unlocked = True
                 st.rerun()
             else:
@@ -87,6 +114,10 @@ st.markdown("""
     .codx-title { font-size: 24px; font-weight: 700; margin: 0; }
     .codx-card { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
     .login-box { max-width: 400px; margin: 80px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #005B9F;}
+    .divider-text { display: flex; align-items: center; text-align: center; color: #888; margin: 20px 0; }
+    .divider-text::before, .divider-text::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
+    .divider-text:not(:empty)::before { margin-right: .25em; }
+    .divider-text:not(:empty)::after { margin-left: .25em; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -334,7 +365,6 @@ with col_main:
         col_pwd, col_ref, col_sv = st.columns([1, 1.2, 1.5])
         
         with col_pwd:
-            # Form cho phép Enter khi nhập pass lưu
             with st.form("save_form"):
                 chk_pwd = st.text_input("🔑 Mật khẩu chốt:", type="password")
                 submit_save = st.form_submit_button("💾 LƯU LÊN CLOUD", type="primary", use_container_width=True)
@@ -346,7 +376,6 @@ with col_main:
                 st.session_state.df_master = load_data()  
                 st.rerun()                
         
-        # Xử lý logic lưu
         if submit_save:
             if chk_pwd == "123":
                 try:
@@ -496,4 +525,33 @@ if st.session_state.role == "Admin":
                 if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)") :
                     if f_ten:
                         new_data = []
-                        max_id = st.session_
+                        max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                        dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
+
+                        if f_k:
+                            for k in f_k:
+                                max_id += 1
+                                m_date = k_map.get(k)
+                                d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
+                                
+                                new_data.append({
+                                    "_ID": max_id, "TEN_BAO_CAO": f_ten, 
+                                    "KY_BAO_CAO": k, "DEADLINE": d_val, 
+                                    "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val
+                                })
+                        else:
+                            max_id += 1
+                            new_data.append({
+                                "_ID": max_id, "TEN_BAO_CAO": f_ten, 
+                                "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
+                                "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val
+                            })
+
+                        n_df = pd.DataFrame(new_data)
+                        n_df['THANG'] = n_df['DEADLINE'].dt.month.fillna(0).astype(int)
+                        n_df['CANH_BAO'] = n_df.apply(phan_loai, axis=1)
+                        st.session_state.df_master = pd.concat(
+                            [st.session_state.df_master, n_df], 
+                            ignore_index=True
+                        )
+                        st.rerun()
