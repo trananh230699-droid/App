@@ -130,10 +130,10 @@ if not st.session_state.system_authenticated:
     col_logo1, col_logo2, col_logo3 = st.columns([1, 1.5, 1])
     with col_logo2:
         if os.path.exists("logo.png"): 
-            st.image("logo.png", width=300) # Logo gấp đôi
+            st.image("logo.png", width=400) # Logo gấp đôi
             
     st.markdown("### 🖥️ HỆ THỐNG GIÁM SÁT AN NINH MẠNG")
-    st.markdown("<p style='color:#33ff33; opacity:0.7;'>Vui lòng nhập mã TAC CHIEN để truy cập</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#33ff33; opacity:0.7;'>Vui lòng nhập mã đăng nhập để truy cập</p>", unsafe_allow_html=True)
     
     with st.form("system_auth_form"):
         # Nhập mã đăng nhập
