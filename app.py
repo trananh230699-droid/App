@@ -6,6 +6,7 @@ import plotly.express as px
 import unicodedata
 import os
 import calendar
+import time
 from streamlit_gsheets import GSheetsConnection
 
 # ==========================================
@@ -17,49 +18,84 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-    <style>
-    .stApp { background-color: #F4F7F9; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 20px 30px; border-radius: 12px; color: white; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-    .codx-title { font-size: 24px; font-weight: 700; margin: 0; }
-    .codx-card { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
-    .login-box { max-width: 400px; margin: 80px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #005B9F;}
-    .divider-text { display: flex; align-items: center; text-align: center; color: #888; margin: 20px 0; }
-    .divider-text::before, .divider-text::after { content: ''; flex: 1; border-bottom: 1px solid #eee; }
-    .divider-text:not(:empty)::before { margin-right: .25em; }
-    .divider-text:not(:empty)::after { margin-left: .25em; }
-    </style>
-""", unsafe_allow_html=True)
-
 # ==========================================
-# 1. KHÓA BẢO MẬT HỆ THỐNG
+# 1. KHÓA HỆ THỐNG GIAO DIỆN TERMINAL (.BAT STYLE)
 # ==========================================
 if "system_unlocked" not in st.session_state:
     st.session_state.system_unlocked = False
 
 if not st.session_state.system_unlocked:
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown("### 🔒 XÁC THỰC HỆ THỐNG")
-    st.markdown("<p style='color:gray;'>Nhập mã bảo mật để vào app.</p>", unsafe_allow_html=True)
+    # CSS biến giao diện thành màn hình Terminal đen chữ xanh
+    st.markdown("""
+        <style>
+        .stApp { background-color: #050505; color: #00FF00; font-family: 'Consolas', 'Courier New', monospace; }
+        .stTextInput input { background-color: #000000 !important; color: #00FF00 !important; border: 1px solid #00FF00 !important; font-family: 'Consolas', 'Courier New', monospace !important; }
+        .stButton>button { background-color: #000000; color: #00FF00; border: 1px solid #00FF00; font-family: 'Consolas', 'Courier New', monospace; width: 100%; font-weight: bold; }
+        .stButton>button:hover { background-color: #00FF00; color: #000000; }
+        .term-box { max-width: 700px; margin: 40px auto; padding: 20px; border: 1px solid #003300; box-shadow: 0 0 15px #00FF0033; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="term-box">', unsafe_allow_html=True)
     
-    sys_pwd = st.text_input("Mã bảo mật:", type="password")
-    if st.button("Mở khóa 🔑", use_container_width=True, type="primary"):
-        if sys_pwd == "CY": 
-            st.session_state.system_unlocked = True
-            st.rerun()
-        else:
-            st.error("🚨 Sai mã bảo mật!")
+    # Hiển thị Logo
+    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
+    with col_logo2:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+    
+    # Text phong cách terminal
+    st.markdown("""
+    ```text
+    ======================================================================
+      [ CONG AN PHUONG AN KHANH ] - HE THONG GIAM SAT AN NINH TICH HOP
+    ======================================================================
+      DON VI  : CAP AN KHANH                 QUOC GIA: VIET NAM
+      DIA BAN : TP. HO CHI MINH              STATUS  : [ SYSTEM LOCKED ]
+    ======================================================================
+    ```
+    """)
+    
+    # Bọc vào Form để cho phép bấm Enter
+    with st.form("terminal_login"):
+        sys_pwd = st.text_input("[?] VUI LONG NHAP MAT KHAU DE KICH HOAT:", type="password")
+        submit = st.form_submit_button("XÁC NHẬN (Nhấn Enter)")
+        
+        if submit:
+            if sys_pwd == "CY": 
+                st.success("[OK] XAC THUC THANH CONG. DANG MO KHOA DU LIEU MA HOA...")
+                time.sleep(1) # Tạo cảm giác hệ thống đang tải
+                st.session_state.system_unlocked = True
+                st.rerun()
+            else:
+                st.error("""
+                [X] WARNING: ACCESS DENIED [X]
+                ==============================
+                SECURITY BREACH DETECTED. UNAUTHORIZED ACCESS BLOCKED.
+                """)
     st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
+    st.stop() # Dừng tại đây nếu chưa nhập đúng pass
 
 # ==========================================
-# 2. CHỌN QUYỀN (ADMIN / GUEST)
+# 2. GIAO DIỆN CHÍNH THỨC SAU KHI UNLOCK
 # ==========================================
+# CSS cho giao diện web hiện đại (ghi đè CSS Terminal)
+st.markdown("""
+    <style>
+    .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
+    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 20px 30px; border-radius: 12px; color: white; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .codx-title { font-size: 24px; font-weight: 700; margin: 0; }
+    .codx-card { background-color: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
+    .login-box { max-width: 400px; margin: 80px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #005B9F;}
+    </style>
+""", unsafe_allow_html=True)
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "role" not in st.session_state:
     st.session_state.role = None
 
+# MÀN HÌNH CHỌN QUYỀN (ADMIN / GUEST)
 if not st.session_state.logged_in:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     if os.path.exists("logo.png"): 
@@ -72,21 +108,23 @@ if not st.session_state.logged_in:
         st.session_state.role = "Guest"
         st.rerun()
     
-    st.markdown('<div class="divider-text">Nội bộ</div>', unsafe_allow_html=True)
+    st.markdown("<hr style='margin:15px 0;'>", unsafe_allow_html=True)
     
-    pwd = st.text_input("Mật khẩu Admin:", type="password")
-    if st.button("Đăng nhập Admin 🚀", use_container_width=True, type="primary"):
-        if pwd == "123":
-            st.session_state.logged_in = True
-            st.session_state.role = "Admin"
-            st.rerun()
-        else:
-            st.error("🚨 Sai mật khẩu!")
+    with st.form("admin_login"):
+        pwd = st.text_input("Mật khẩu Admin:", type="password")
+        submit_admin = st.form_submit_button("Đăng nhập nội bộ (Nhấn Enter)", type="primary")
+        if submit_admin:
+            if pwd == "123":
+                st.session_state.logged_in = True
+                st.session_state.role = "Admin"
+                st.rerun()
+            else:
+                st.error("🚨 Sai mật khẩu!")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
-# 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU BỌC THÉP CHỐNG LỖI 400
+# 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU
 # ==========================================
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
@@ -108,24 +146,16 @@ def phan_loai(row):
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # BỎ tham số worksheet="Data" và usecols để chống Google API báo lỗi 400
-        # Đọc trực tiếp sheet đầu tiên
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
-        
-        # Cắt lấy 5 cột chứa dữ liệu (Tương đương từ B đến F trong Excel cũ)
         try:
             df = df_raw.iloc[:, 1:6].copy()
         except:
             df = df_raw.copy()
             
-        # Đảm bảo đủ 5 cột (chống lỗi thiếu cột)
         while len(df.columns) < 5:
             df[f"Cot_Trong_{len(df.columns)}"] = ""
             
-        df.columns = [
-            "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
-            "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
-        ]
+        df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]
         df = df.dropna(subset=['TEN_BAO_CAO'])
         
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].fillna("Không xác định")
@@ -139,15 +169,7 @@ def load_data():
         df['_ID'] = range(len(df))
         return df
     except Exception as e:
-        # NẾU VẪN LỖI, ĐÂY LÀ THÔNG BÁO HƯỚNG DẪN CÁCH MỞ KHÓA TỪ PHÍA CLOUD
-        st.error("🚨 MÁY CHỦ GOOGLE TỪ CHỐI TRUY CẬP (LỖI 400/403)")
-        st.info("""
-        **NẾU BẠN THẤY THÔNG BÁO NÀY TRÊN CLOUD, BẠN CHƯA CẤP QUYỀN CHO BOT:**
-        1. Về trang cài đặt của Streamlit Cloud (App Settings) > **Advanced Settings > Secrets**.
-        2. Chắc chắn bạn đã dán thông tin file JSON chứa `project_id`, `private_key`, `client_email`... vào ô đó theo đúng định dạng TOML.
-        3. Bạn PHẢI vào Google Sheets của bạn, bấm nút **Share (Chia sẻ)**, và thêm email `client_email` của con Bot vào làm **Người chỉnh sửa (Editor)**.
-        """)
-        st.error(f"Chi tiết lỗi kỹ thuật: {e}")
+        st.error("🚨 MÁY CHỦ GOOGLE TỪ CHỐI TRUY CẬP. VUI LÒNG KIỂM TRA LẠI SECRETS VÀ QUYỀN CHIA SẺ GOOGLE SHEETS.")
         st.stop()
 
 if "df_master" not in st.session_state:
@@ -310,36 +332,40 @@ with col_main:
         # NÚT LƯU CLOUD
         st.markdown("<br>", unsafe_allow_html=True)
         col_pwd, col_ref, col_sv = st.columns([1, 1.2, 1.5])
+        
         with col_pwd:
-            chk_pwd = st.text_input("🔑 Mật khẩu chốt:", type="password")
+            # Form cho phép Enter khi nhập pass lưu
+            with st.form("save_form"):
+                chk_pwd = st.text_input("🔑 Mật khẩu chốt:", type="password")
+                submit_save = st.form_submit_button("💾 LƯU LÊN CLOUD", type="primary", use_container_width=True)
+                
         with col_ref:
             st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
             if st.button("🔄 LÀM MỚI (HỦY SỬA)", use_container_width=True):
                 st.cache_data.clear()     
                 st.session_state.df_master = load_data()  
                 st.rerun()                
-        with col_sv:
-            st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-            if st.button("💾 LƯU LÊN CLOUD", type="primary", use_container_width=True):
-                if chk_pwd == "123":
-                    try:
-                        df_to_save = st.session_state.df_master[[
-                            "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
-                            "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
-                        ]]
-                        # Phải chèn thêm 1 cột STT để đẩy lùi dữ liệu sang đúng Cột B,C,D,E,F của file Gsheets cũ
-                        df_upload = df_to_save.copy()
-                        df_upload.insert(0, "STT_ID", range(1, len(df_upload) + 1))
-                        
-                        conn.update(spreadsheet=SPREADSHEET_URL, data=df_upload)
-                        st.success("✅ Đã chốt hạ thành công lên Google Sheets!")
-                        st.cache_data.clear()
-                        st.session_state.df_master = load_data()
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"🚨 LỖI LƯU CLOUD: {e}")
-                else:
-                    st.error("🚨 Sai mật khẩu!")
+        
+        # Xử lý logic lưu
+        if submit_save:
+            if chk_pwd == "123":
+                try:
+                    df_to_save = st.session_state.df_master[[
+                        "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
+                        "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
+                    ]]
+                    df_upload = df_to_save.copy()
+                    df_upload.insert(0, "STT_ID", range(1, len(df_upload) + 1))
+                    
+                    conn.update(spreadsheet=SPREADSHEET_URL, data=df_upload)
+                    st.success("✅ Đã chốt hạ thành công lên Google Sheets!")
+                    st.cache_data.clear()
+                    st.session_state.df_master = load_data()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"🚨 LỖI LƯU CLOUD: {e}")
+            else:
+                st.error("🚨 Sai mật khẩu!")
     else:
         st.info("👁️ **CHẾ ĐỘ KHÁCH:** Các tính năng thêm, sửa, xóa đã bị khóa.")
         
@@ -467,36 +493,7 @@ if st.session_state.role == "Admin":
                 with c_f3: 
                     f_tt = st.selectbox("Trạng thái", ["Chưa xử lý", "Đang thực hiện", "Hoàn thành"])
                 
-                if st.form_submit_button("➕ Thêm vào danh sách (Lưu tạm)"):
+                if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)") :
                     if f_ten:
                         new_data = []
-                        max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
-                        dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
-
-                        if f_k:
-                            for k in f_k:
-                                max_id += 1
-                                m_date = k_map.get(k)
-                                d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
-                                
-                                new_data.append({
-                                    "_ID": max_id, "TEN_BAO_CAO": f_ten, 
-                                    "KY_BAO_CAO": k, "DEADLINE": d_val, 
-                                    "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val
-                                })
-                        else:
-                            max_id += 1
-                            new_data.append({
-                                "_ID": max_id, "TEN_BAO_CAO": f_ten, 
-                                "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
-                                "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val
-                            })
-
-                        n_df = pd.DataFrame(new_data)
-                        n_df['THANG'] = n_df['DEADLINE'].dt.month.fillna(0).astype(int)
-                        n_df['CANH_BAO'] = n_df.apply(phan_loai, axis=1)
-                        st.session_state.df_master = pd.concat(
-                            [st.session_state.df_master, n_df], 
-                            ignore_index=True
-                        )
-                        st.rerun()
+                        max_id = st.session_
