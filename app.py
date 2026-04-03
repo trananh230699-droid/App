@@ -88,7 +88,7 @@ if not st.session_state.logged_in:
 # ==========================================
 # 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU
 # ==========================================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1heG6Get-4Hj-Tio1e90YVcOvsWpitT4VoNDuehZ0EXs/edit?usp=sharing" 
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit?gid=2004413414#gid=2004413414&fvid=58293819" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
