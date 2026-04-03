@@ -13,13 +13,13 @@ from streamlit_gsheets import GSheetsConnection
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
-    page_title="Hệ thống Quản trị - CA An Khánh", 
+    page_title="Hệ thống Quản trị - CAP An Khánh", 
     page_icon="☑️", 
     layout="wide"
 )
 
 # ==========================================
-# GIAO DIỆN CHUẨN TÁC CHIẾN AN NINH MẠNG (CYBER THEME)
+# GIAO DIỆN HIỆN ĐẠI, DỄ NHÌN, ĐẬM CHẤT CYBER (CYBER THEME)
 # ==========================================
 cyber_css = """
     <style>
@@ -47,7 +47,7 @@ cyber_css = """
         border: 1px solid #1a1a1a; 
     }
     
-    /* Giao diện khung đăng nhập/chọn quyền */
+    /* Giao diện khung đăng nhập/xác thực */
     .login-box { 
         max-width: 450px; 
         margin: 60px auto; 
@@ -67,6 +67,7 @@ cyber_css = """
         font-family: 'Consolas', monospace !important;
         font-size: 16px !important;
         letter-spacing: 2px;
+        text-align: center;
     }
     
     /* Tùy chỉnh button */
@@ -77,6 +78,7 @@ cyber_css = """
         font-family: 'Consolas', monospace;
         font-weight: bold;
         transition: 0.3s;
+        width: 100%;
     }
     .stButton>button:hover {
         background-color: #33ff33;
@@ -95,6 +97,7 @@ cyber_css = """
         border-radius: 5px;
         border: 1px solid #1a1a1a;
         margin-bottom: 20px;
+        text-align: left;
     }
     
     /* Ẩn bớt các element thừa của Streamlit cho pro */
@@ -109,111 +112,147 @@ st.markdown(cyber_css, unsafe_allow_html=True)
 # XỬ LÝ PHIÊN ĐĂNG NHẬP (F5 CHỐNG MẤT LOG)
 # ==========================================
 # Lấy quyền từ URL parameter (để giữ phiên khi F5)
-current_role_param = st.query_params.get("role", None)
+current_auth_param = st.query_params.get("authenticated", "false")
 
 if "system_authenticated" not in st.session_state:
-    st.session_state.system_authenticated = False
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "role" not in st.session_state:
-    st.session_state.role = None
+    st.session_state.system_authenticated = (current_auth_param == "true")
 
-# Nếu có param role hợp lệ trên URL, tự động xác thực và log in
-if current_role_param in ["Admin", "Guest"]:
-    st.session_state.system_authenticated = True
-    st.session_state.logged_in = True
-    st.session_state.role = current_role_param
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = st.session_state.system_authenticated
 
 # ==========================================
-# GIAI ĐOẠN 1: XÁC THỰC MẬT KHẨU HỆ THỐNG
+# 1. MÀN HÌNH YÊU CẦU NHẬP MÃ ĐĂNG NHẬP ĐỂ TRUY CẬP
 # ==========================================
 if not st.session_state.system_authenticated:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     
-    # Logo nhỏ gọn, hợp lý (width=120)
-    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
+    # Logo gấp đôi so với hợp lý, nằm ở giữa (width=240)
+    col_logo1, col_logo2, col_logo3 = st.columns([1, 1.5, 1])
     with col_logo2:
         if os.path.exists("logo.png"): 
-            st.image("logo.png", width=120)
+            st.image("logo.png", width=300) # Logo gấp đôi
             
-    st.markdown("### 🖥️ HỆ THỐNG AN NINH MẠNG")
+    st.markdown("### 🖥️ HỆ THỐNG GIÁM SÁT AN NINH MẠNG")
     st.markdown("<p style='color:#33ff33; opacity:0.7;'>Vui lòng nhập mã TAC CHIEN để truy cập</p>", unsafe_allow_html=True)
     
     with st.form("system_auth_form"):
-        sys_pwd = st.text_input("Mã Tac Chien:", type="password")
+        # Nhập mã đăng nhập
+        sys_pwd = st.text_input("MÃ ĐĂNG NHẬP:", type="password")
         submit_auth = st.form_submit_button("XÁC THỰC QUYỀN TRUY CẬP")
         
         if submit_auth:
-            if sys_pwd == "CY":
-                # HIỆU ỨNG LOADING CHUẨN HACKER, PRO
+            if sys_pwd == "CY": # Mã đăng nhập Tac Chien
+                # HIỆU ỨNG LOADING KIỂU HACKER, CÓ %, TẦM 3 GIÂY, CHUYÊN NGHIỆP
                 auth_placeholder = st.empty()
                 with auth_placeholder.container():
                     st.markdown('<div class="terminal-load">', unsafe_allow_html=True)
                     lines = [
                         "> Initializing secure protocol...",
                         "> Verifying credentials against central node...",
-                        "> Access Granted: Token [CY-OPS-99x1]",
-                        "> Bypassing local firewalls...",
-                        "> Extracting GSheets API key...",
-                        "> DECRYPTING MAINFRAME..."
+                        "> Token decrypted: [CY-OPS-404x1]",
+                        "> Injecting security parameters...",
+                        "> Connection established via port 8501."
                     ]
                     load_text = ""
                     for line in lines:
                         load_text += line + "<br>"
                         st.markdown(load_text, unsafe_allow_html=True)
-                        time.sleep(0.15) # Tốc độ hiện chữ
+                        time.sleep(0.3) # 0.3 * 5 = 1.5 giây hiện chữ
+                    
+                    # Chạy % tầm 1.5 giây
+                    for percent in range(0, 101, 20):
+                        time.sleep(0.3)
+                        pct_text = f"> LOADING SYSTEM DATABASE... {percent}%"
+                        st.markdown(load_text + pct_text, unsafe_allow_html=True)
+                        
+                    st.markdown(load_text + "> LOADING SYSTEM DATABASE... 100%<br>> ACCESS GRANTED. WELCOME COMANDANTE.", unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
+                    time.sleep(0.5)
                 
-                # Hoàn tất xác thực
+                # Hoàn tất xác thực và lưu phiên F5
                 st.session_state.system_authenticated = True
+                st.session_state.logged_in = True
+                st.query_params["authenticated"] = "true" # Lưu param F5 chống mất
                 auth_placeholder.empty()
                 st.rerun()
             else:
-                st.error("🚨 Mã Tac Chien không chính xác! Truy cập bị từ chối.")
+                st.error("🚨 Mã Đăng nhập không chính xác! Truy cập bị từ chối.")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
-# GIAI ĐOẠN 2: CHỌN QUYỀN TRUY CẬP
+# 2. GIAO DIỆN CHÍNH THỨC SAU KHI ĐĂNG NHẬP
 # ==========================================
-if st.session_state.system_authenticated and not st.session_state.logged_in:
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+# Ghi đè lại CSS Terminal sang CSS làm việc chuyên nghiệp (vẫn giữCyber)
+cyber_work_css = """
+    <style>
+    /* Tổng thể màn hình dark mode, chữ xanh lá terminal */
+    .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     
-    # Logo nhỏ gọn
-    col_logo1, col_logo2, col_logo3 = st.columns([1, 1, 1])
-    with col_logo2:
-        if os.path.exists("logo.png"): 
-            st.image("logo.png", width=120)
-            
-    st.markdown("### 🛰️ CHỌN CHẾ ĐỘ TÁC CHIẾN")
-    st.markdown("<p style='color:#33ff33; opacity:0.7;'>Mã Tac Chien [CY] hợp lệ. Chọn quyền hạn của bạn:</p>", unsafe_allow_html=True)
+    /* Cấu trúc header đậm chất công nghệ */
+    .codx-header { 
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+        padding: 15px 25px; 
+        border-radius: 8px; 
+        color: #33ff33; 
+        margin-bottom: 25px; 
+        box-shadow: 0 2px 10px rgba(51, 255, 51, 0.2); 
+        border: 1px solid #33ff33;
+    }
+    .codx-title { font-size: 22px; font-weight: 700; margin: 0; text-shadow: 0 0 10px #33ff33;}
     
-    with st.form("role_selection_form"):
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_r1, col_r2 = st.columns(2)
-        with col_r1:
-            submit_guest = st.form_submit_button("👁️ TRUY CẬP KHÁCH")
-        with col_r2:
-            submit_admin = st.form_submit_button("🔓 TRUY CẬP ADMIN")
-            
-        if submit_guest:
-            st.session_state.logged_in = True
-            st.session_state.role = "Guest"
-            st.query_params["role"] = "Guest" # Lưu param F5 chống mất
-            st.rerun()
-            
-        if submit_admin:
-            st.session_state.logged_in = True
-            st.session_state.role = "Admin"
-            st.query_params["role"] = "Admin" # Lưu param F5 chống mất
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.stop()
+    /* Thẻ card cho bảng và biểu đồ */
+    .codx-card { 
+        background-color: #0f0f0f; 
+        padding: 20px; 
+        border-radius: 8px; 
+        box-shadow: 0 2px 8px rgba(51, 255, 51, 0.1); 
+        border: 1px solid #1a1a1a; 
+    }
+    
+    /* Tùy chỉnh input text trong bảng về dạng chuyên nghiệp */
+    .stTextInput input {
+        background-color: #000 !important;
+        color: #33ff33 !important;
+        border: 1px solid #1a1a1a !important;
+        font-family: 'Consolas', monospace !important;
+        font-size: 14px !important;
+        letter-spacing: 0px;
+        text-align: left;
+    }
+    .stTextInput input:focus {
+        border-color: #33ff33 !important;
+        box-shadow: 0 0 5px #33ff33 !important;
+    }
+    
+    /* Tùy chỉnh button trong bảng */
+    .stButton>button {
+        background-color: #0f0f0f;
+        color: #33ff33;
+        border: 1px solid #1a1a1a;
+        font-family: 'Consolas', monospace;
+        font-weight: bold;
+        transition: 0.3s;
+        width: 100%;
+    }
+    .stButton>button:hover {
+        background-color: #33ff33;
+        color: #000;
+        box-shadow: 0 0 15px #33ff33;
+    }
+    
+    /* Ẩn bớt các element thừa của Streamlit cho pro */
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+"""
+st.markdown(cyber_work_css, unsafe_allow_html=True)
 
 # ==========================================
 # 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU
 # ==========================================
-SPREADSHEET_URL = "URL_GOOGLE_SHEETS_CUA_BAN" 
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit?gid=2004413414#gid=2004413414&fvid=58293819" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
@@ -261,27 +300,26 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ==========================================
-# 4. GIAO DIỆN HEADER & BỘ LỌC TÌM KIẾM
+# 4. GIAO DIỆN HEADER & BỘ LỌC TÌM KIẾM (KHÔNG THAY ĐỔI)
 # ==========================================
 col_l, col_r = st.columns([1, 8])
 with col_l:
     if os.path.exists("logo.png"): 
-        st.image("logo.png", width=90) # Logo nhỏ gọn trên header
+        st.image("logo.png", width=120) # Logo nhỏ gọn trên header
     else: 
         st.write("📌 **LOGO**")
 
 with col_r:
-    role_text = "Quản trị viên (Admin)" if st.session_state.role == "Admin" else "Khách (Chỉ xem)"
     st.markdown(f"""
     <div class="codx-header">
         <p class="codx-title">☑️ HỆ THỐNG QUẢN TRỊ CÔNG VIỆC CÔNG AN PHƯỜNG AN KHÁNH</p>
-        <p style="margin:0; opacity:0.8;">Quyền truy cập Tac Chien: <b>{role_text}</b></p>
+        <p style="margin:0; opacity:0.8;">Cập nhật trạng thái Tac Chien, theo dõi tiến độ báo cáo.</p>
     </div>
     """, unsafe_allow_html=True)
 
-# Nút đăng xuất xóa Query Param để bắt đăng nhập lại
+# Đăng xuất xóa Query Param để bắt đăng nhập lại
 if st.sidebar.button("🚪 Đăng xuất hệ thống", type="primary"):
-    st.query_params.clear() # Xóa URL param
+    st.query_params.clear() # Xóa URL param authenticated
     st.session_state.clear()
     st.rerun()
 
@@ -327,7 +365,7 @@ mask = (
 df_filtered = st.session_state.df_master[mask].copy()
 
 # ==========================================
-# 5. KHU VỰC HIỂN THỊ BẢNG & LƯU CLOUD
+# 5. BẢNG CÔNG VIỆC CHI TIẾT (KHÔNG THAY ĐỔI)
 # ==========================================
 metric_container = st.container()
 st.markdown("<br>", unsafe_allow_html=True)
@@ -338,63 +376,53 @@ with col_main:
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
     df_filtered = df_filtered.sort_values(by='DEADLINE', ascending=True, na_position='last').reset_index(drop=True)
-    
-    if st.session_state.role == "Admin":
-        st.info("💡 Thêm/Xóa/Sửa là **TẠM THỜI**. Hãy bấm **LƯU LÊN CLOUD** để cập nhật dữ liệu gốc.")
-        df_filtered.insert(0, "🗑️ Xóa", False)
+    df_filtered.insert(0, "🗑️ Xóa", False)
 
-        cauhinh_cot = {
-            "_ID": None, 
-            "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
-            "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-            "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"]),
-            "CANH_BAO": st.column_config.TextColumn("Tình trạng", disabled=True),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu")
-        }
+    cauhinh_cot = {
+        "_ID": None, 
+        "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
+        "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
+        "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
+        "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+        "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"]),
+        "CANH_BAO": st.column_config.TextColumn("Tình trạng", disabled=True),
+        "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu")
+    }
 
-        edited_df = st.data_editor(
-            df_filtered,
-            key=st.session_state.editor_key,
-            use_container_width=True, 
-            hide_index=True, 
-            num_rows="dynamic",
-            column_config=cauhinh_cot
-        )
+    edited_df = st.data_editor(
+        df_filtered,
+        key=st.session_state.editor_key,
+        use_container_width=True, 
+        hide_index=True, 
+        num_rows="dynamic",
+        column_config=cauhinh_cot
+    )
 
-        deleted_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
-        if deleted_ids:
-            st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(deleted_ids)]
-            st.rerun() 
-            
-        edited_df = edited_df[edited_df["🗑️ Xóa"] == False]
-        for _, row in edited_df.iterrows():
-            m_idx = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row['_ID']].tolist()[0]
-            st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
-            st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
-            st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
-            st.session_state.df_master.at[m_idx, 'TRANG_THAI_GOC'] = row['TRANG_THAI_GOC']
-            st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
-            st.session_state.df_master.at[m_idx, 'CANH_BAO'] = phan_loai(row)
+    deleted_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
+    if deleted_ids:
+        st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(deleted_ids)]
+        st.rerun() 
+        
+    edited_df = edited_df[edited_df["🗑️ Xóa"] == False]
+    for _, row in edited_df.iterrows():
+        m_idx = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row['_ID']].tolist()[0]
+        st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
+        st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
+        st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
+        st.session_state.df_master.at[m_idx, 'TRANG_THAI_GOC'] = row['TRANG_THAI_GOC']
+        st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
+        st.session_state.df_master.at[m_idx, 'CANH_BAO'] = phan_loai(row)
 
-        if st.button("💾 LƯU LÊN CLOUD", type="primary"):
-            conn.update(worksheet="Data", data=st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]])
-            st.success("✅ Đã cập nhật dữ liệu thành công lên Google Sheets!")
-            st.cache_data.clear()
-            st.session_state.df_master = load_data()
-            st.rerun()
-    else:
-        st.info("👁️ **CHẾ ĐỘ XEM:** Bạn đang xem ở quyền Khách. Các tính năng thêm, sửa, xóa đã bị khóa.")
-        st.dataframe(
-            df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "CANH_BAO", "DON_VI_YEU_CAU"]],
-            use_container_width=True, 
-            hide_index=True
-        )
+    if st.button("💾 LƯU LÊN CLOUD", type="primary"):
+        conn.update(worksheet="Data", data=st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU"]])
+        st.success("✅ Đã cập nhật dữ liệu thành công lên Google Sheets!")
+        st.cache_data.clear()
+        st.session_state.df_master = load_data()
+        st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. BIỂU ĐỒ & LỊCH NHẮC VIỆC
+# 6. BIỂU ĐỒ & LỊCH NHẮC VIỆC (KHÔNG THAY ĐỔI)
 # ==========================================
 with metric_container:
     c_m1, c_m2, c_m3 = st.columns(3)
