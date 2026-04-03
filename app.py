@@ -196,7 +196,10 @@ today = pd.Timestamp.today().normalize()
 with st.sidebar:
     st.header("Thao tác")
     if st.button("🔄 Tải lại dữ liệu mới nhất"):
-        st.cache_data.clear()  # Xóa bộ nhớ đệm
+        def load_data():
+    # Thêm tham số ttl=0 trực tiếp vào lệnh read
+    df_raw = conn.read(spreadsheet=SPREADSHEET_URL, worksheet="Data", ttl=0)
+    return df_raw
         st.rerun()             # Chạy lại app để đọc file Google Sheet mới
     st.divider()
 
