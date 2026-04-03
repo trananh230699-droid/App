@@ -204,7 +204,6 @@ def phan_loai(row):
     if 0 <= days_diff <= 5: return "🔴 Cần thực hiện ngay"
     return "⏳ Đang thực hiện"
 
-# HÀM LẤY CỘT TỰ ĐỘNG CHỐNG LỆCH DỮ LIỆU GOOGLE SHEETS
 def get_col(df, keywords, fallback_idx):
     for col in df.columns:
         if any(kw in str(col).lower() for kw in keywords):
@@ -215,11 +214,11 @@ def get_col(df, keywords, fallback_idx):
 def style_status(val):
     val_str = str(val)
     if "Đã hoàn thành" in val_str:
-        return 'background-color: #2e7d32; color: white;' # Xanh lá
+        return 'background-color: #2e7d32; color: white;'
     elif "Cần thực hiện ngay" in val_str:
-        return 'background-color: #d32f2f; color: white;' # Đỏ sáng
+        return 'background-color: #d32f2f; color: white;'
     elif "Trễ hạn" in val_str:
-        return 'background-color: #b71c1c; color: white;' # Đỏ sậm
+        return 'background-color: #b71c1c; color: white;'
     return ''
 
 @st.cache_data(ttl=10)
@@ -240,7 +239,6 @@ def load_data():
         else:
             df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
-        # Ánh xạ cột thông minh
         col_ten = get_col(df_raw, ["tên", "ten", "công việc"], 1)
         col_ky = get_col(df_raw, ["kỳ", "ky"], 2)
         col_han = get_col(df_raw, ["hạn", "han", "deadline"], 3)
@@ -267,7 +265,6 @@ def load_data():
         
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
         
-        # Áp dụng logic nhắc việc tự động
         df['TINH_TRANG'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
@@ -348,7 +345,6 @@ with col_main:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
-    # --- BỘ CÔNG CỤ SẮP XẾP A-Z ---
     st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A)")
     c_s1, c_s2 = st.columns([1.5, 2])
     
@@ -379,7 +375,6 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
         st.info("💡 Bấm trực tiếp vào bảng để chọn hoàn thành, Sửa hoặc Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
         df_filtered.insert(0, "🗑️ Xóa", False)
@@ -395,7 +390,6 @@ with col_main:
             "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
         }
 
-        # Áp dụng màu tự động theo mức độ hoàn thành thông qua Styler object
         styled_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
 
         edited_df = st.data_editor(
@@ -416,7 +410,6 @@ with col_main:
             st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
             st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
             st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
-            # Cập nhật và tinh chỉnh trạng thái tự động hoặc ghi nhận đã hoàn thành
             st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(row)
             st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
             st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
@@ -479,7 +472,6 @@ with col_sub:
     
     df_cx_thang = df_cx[(df_cx['DEADLINE'].dt.month == now.month) & (df_cx['DEADLINE'].dt.year == now.year)]
     
-    # Lọc phân loại các ngày hạn gấp (<= 5 ngày) để khoanh đỏ
     dls_urgent = df_cx_thang[(df_cx_thang['DEADLINE'] - today).dt.days <= 5]['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
     dls_all = df_cx_thang['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
     dls_normal = [d for d in dls_all if d not in dls_urgent]
@@ -515,6 +507,7 @@ with col_sub:
 
 # ==========================================
 # 8. THÊM BÁO CÁO MỚI (CHỈ DÀNH CHO ADMIN)
+# Tích hợp logic đẩy lên Cloud trực tiếp tại form
 # ==========================================
 if st.session_state.role == "Admin":
     with col_main:
@@ -541,6 +534,7 @@ if st.session_state.role == "Admin":
                 with c_f3: 
                     f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
                 
+                # Logic Form submit (Nối từ phần ghi đè/đẩy trực tiếp lên cloud)
                 if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
                     if f_ten:
                         new_data = []
@@ -567,10 +561,29 @@ if st.session_state.role == "Admin":
                                 "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
                             })
 
+                        # Tiền xử lý dữ liệu mới
                         n_df = pd.DataFrame(new_data)
                         n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
-                        st.session_state.df_master = pd.concat(
-                            [st.session_state.df_master, n_df], 
-                            ignore_index=True
-                        )
-                        st.rerun()
+                        
+                        try:
+                            # 1. Hợp nhất dữ liệu mới vào dataframe gốc
+                            updated_df = pd.concat([st.session_state.df_master, n_df], ignore_index=True)
+                            st.session_state.df_master = updated_df
+                            
+                            # 2. Xử lý khung dữ liệu chuẩn bị đẩy lên Sheets
+                            df_to_save = updated_df[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+                            df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
+                            
+                            # 3. Cập nhật đè dữ liệu trực tiếp lên Cloud (Logic nối từ Đoạn 1)
+                            conn.update(worksheet="Data", data=df_to_save)
+                            
+                            st.success("🎉 Chúc mừng! Báo cáo mới đã được thêm và lưu an toàn trên Cloud.")
+                            
+                            # 4. Làm mới giao diện để hiển thị
+                            st.cache_data.clear()
+                            time.sleep(1) # Chờ 1 giây để thông báo kịp hiện
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Lỗi kết nối hoặc lưu dữ liệu lên Cloud: {e}")
+                    else:
+                        st.warning("Vui lòng điền đầy đủ Tên báo cáo trước khi gửi.")
