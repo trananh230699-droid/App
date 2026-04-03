@@ -58,7 +58,6 @@ if "role" not in st.session_state:
 # GIAO DIỆN CSS: TÁCH BIỆT HACKER VÀ LÀM VIỆC
 # ==========================================
 if not st.session_state.logged_in:
-    # ---------------- CSS HACKER (KHI CHƯA ĐĂNG NHẬP) ----------------
     css_code = """
         <style>
         .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
@@ -76,7 +75,6 @@ if not st.session_state.logged_in:
         </style>
     """
 else:
-    # ---------------- CSS HIỆN ĐẠI (KHI ĐÃ ĐĂNG NHẬP VÀO LÀM VIỆC) ----------------
     css_code = """
         <style>
         .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
@@ -124,7 +122,7 @@ if not st.session_state.system_auth:
             if sys_pwd == "CY":
                 add_log("SUCCESS")
                 
-                # HIỆU ỨNG LOADING CHẠY NGANG - MÀU MÈ, CHUYÊN NGHIỆP HƠN
+                # HIỆU ỨNG LOADING CHẠY NGANG MƯỢT MÀ
                 loader = st.empty()
                 base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
                 spinners = ['|', '/', '-', '\\']
@@ -191,6 +189,7 @@ if st.session_state.system_auth and not st.session_state.logged_in:
 # ==========================================
 # GIAI ĐOẠN 3: ỨNG DỤNG LÀM VIỆC CHÍNH THỨC
 # ==========================================
+# URL sạch đã lược bỏ đuôi gây lỗi
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -208,39 +207,68 @@ def phan_loai(row):
     if 0 <= days_diff <= 5: return "🔥 CẦN LÀM GẤP"
     return "⏳ ĐANG THỰC HIỆN"
 
+# HÀM LẤY CỘT TỰ ĐỘNG CHỐNG LỆCH DỮ LIỆU GOOGLE SHEETS
+def get_col(df, keywords, fallback_idx):
+    for col in df.columns:
+        if any(kw in str(col).lower() for kw in keywords):
+            return col
+    if fallback_idx < len(df.columns): return df.columns[fallback_idx]
+    return None
+
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # Đọc dữ liệu từ Gsheets
+        # Lấy toàn bộ file để quét tự động (Bỏ qua các hàng title dư thừa)
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
-        # Cắt lấy 6 cột
-        if len(df_raw.columns) >= 7:
-            df = df_raw.iloc[:, 1:7].copy()
-        else:
-            df = df_raw.copy()
-            
-        while len(df.columns) < 6:
-            df[f"Cot_{len(df.columns)}"] = ""
-            
-        df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]
-        df = df.dropna(subset=['TEN_BAO_CAO'])
+        # Tìm hàng tiêu đề thực sự
+        header_idx = -1
+        for i, row in df_raw.head(10).iterrows():
+            row_str = " ".join(row.astype(str)).lower()
+            if "báo cáo" in row_str or "hạn chót" in row_str or "trạng thái" in row_str:
+                header_idx = i
+                break
         
-        # CHỐNG LỖI ATTRIBUTE ERROR (.str.contains) => Ép kiểu toàn bộ về string
+        if header_idx != -1:
+            df_raw.columns = df_raw.iloc[header_idx].astype(str).str.strip()
+            df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
+        else:
+            df_raw.columns = df_raw.columns.astype(str).str.strip()
+
+        # Ánh xạ cột thông minh
+        col_ten = get_col(df_raw, ["tên", "ten", "công việc"], 1)
+        col_ky = get_col(df_raw, ["kỳ", "ky"], 2)
+        col_han = get_col(df_raw, ["hạn", "han", "deadline"], 3)
+        col_tt = get_col(df_raw, ["trạng", "trang", "tt"], 4)
+        col_dv = get_col(df_raw, ["đơn", "don", "yêu cầu"], 5)
+        col_lv = get_col(df_raw, ["lĩnh", "linh", "vực"], 6)
+
+        extracted = {
+            "TEN_BAO_CAO": df_raw[col_ten] if col_ten else pd.Series([""]*len(df_raw)),
+            "KY_BAO_CAO": df_raw[col_ky] if col_ky else pd.Series([""]*len(df_raw)),
+            "DEADLINE": df_raw[col_han] if col_han else pd.Series([""]*len(df_raw)),
+            "TRANG_THAI_GOC": df_raw[col_tt] if col_tt else pd.Series([""]*len(df_raw)),
+            "DON_VI_YEU_CAU": df_raw[col_dv] if col_dv else pd.Series([""]*len(df_raw)),
+            "LINH_VUC": df_raw[col_lv] if col_lv else pd.Series([""]*len(df_raw))
+        }
+        df = pd.DataFrame(extracted)
+        
+        df = df.dropna(subset=['TEN_BAO_CAO'])
         df['TEN_BAO_CAO'] = df['TEN_BAO_CAO'].astype(str)
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].astype(str).replace('nan', 'Không xác định')
         df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].astype(str).replace('nan', 'Chưa xử lý')
         df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].astype(str).replace('nan', 'Không xác định')
         df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
-        df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], errors='coerce')
+        # ĐỊNH DẠNG NGÀY THÁNG VIỆT NAM (Giải quyết lỗi không khoanh đỏ lịch)
+        df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
         df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
         
         df['CANH_BAO'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
     except Exception as e:
-        st.error(f"❌ LỖI ĐỌC GOOGLE SHEETS: {e}")
+        st.error(f"❌ LỖI ĐỌC DỮ LIỆU: {e}")
         st.stop()
 
 if "df_master" not in st.session_state:
@@ -302,7 +330,6 @@ def chk_ky(row_ky):
     if not sel_ky: return False
     return any(k in str(row_ky) for k in sel_ky)
 
-# Ép kiểu str() cho cột TEN_BAO_CAO lúc quét mask để chống lỗi 100%
 mask = (
     st.session_state.df_master['TEN_BAO_CAO'].astype(str).str.contains(txt_search, case=False, na=False) &
     st.session_state.df_master['KY_BAO_CAO'].apply(chk_ky) &
@@ -324,7 +351,6 @@ with col_main:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
-    # --- BỘ CÔNG CỤ SẮP XẾP A-Z ---
     st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A)")
     c_s1, c_s2 = st.columns([1.5, 2])
     
@@ -355,7 +381,6 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
         st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
         df_filtered.insert(0, "🗑️ Xóa", False)
@@ -398,7 +423,8 @@ with col_main:
         if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
             try:
                 df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
-                df_to_save.insert(0, "STT_ID", range(1, len(df_to_save) + 1))
+                # Thêm số thứ tự và chèn 1 cột rỗng ở đầu để căn đúng form cũ của bạn trên Google Sheets (STT, Tên, Kỳ, Hạn...)
+                df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                 conn.update(worksheet="Data", data=df_to_save)
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
                 st.cache_data.clear()
@@ -445,23 +471,33 @@ with col_sub:
     st.markdown('</div><br>', unsafe_allow_html=True)
 
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; font-weight:bold;'>📅 LỊCH NHẮC VIỆC THÁNG</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-weight:bold;'>📅 LỊCH NHẮC VIỆC THÁNG NÀY</p>", unsafe_allow_html=True)
     
     now = datetime.datetime.now()
     cal = calendar.monthcalendar(now.year, now.month)
     df_cx = df_filtered[df_filtered['CANH_BAO'] != "✅ HOÀN THÀNH"].copy()
-    df_cx_thang = df_cx[df_cx['DEADLINE'].dt.month == now.month]
+    
+    # Cập nhật điều kiện lọc lịch để khoanh đúng tháng và năm hiện tại
+    df_cx_thang = df_cx[(df_cx['DEADLINE'].dt.month == now.month) & (df_cx['DEADLINE'].dt.year == now.year)]
     dls = df_cx_thang['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
 
     html_cal = '<table style="width:100%; border-collapse: collapse; font-size:13px; text-align:center;">'
     html_cal += '<tr><th style="color:#ff3333">CN</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th></tr>'
     
+    c_tdl = 'background:#EF4444; border: 3px solid #0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:18px; margin:auto; font-weight:bold; box-sizing:border-box;'
+    c_t = 'background:#0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
+    c_dl = 'background:#EF4444; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
+
     for week in cal:
         html_cal += '<tr>'
         for day in week:
             if day == 0: html_cal += '<td></td>'
-            elif day == now.day: html_cal += f'<td style="background-color:#0078D7; border-radius:50%; font-weight:bold; color:#fff;">{day}</td>'
-            elif day in dls: html_cal += f'<td style="background-color:#EF4444; border-radius:50%; font-weight:bold; color:#fff;">{day}</td>'
+            elif day == now.day and day in dls: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_tdl}">{day}</div></td>'
+            elif day == now.day: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_t}">{day}</div></td>'
+            elif day in dls: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_dl}">{day}</div></td>'
             else: html_cal += f'<td>{day}</td>'
         html_cal += '</tr>'
     html_cal += '</table>'
