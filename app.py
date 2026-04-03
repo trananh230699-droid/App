@@ -211,25 +211,27 @@ def phan_loai(row):
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # Chống lỗi 400 bằng cách đọc sạch sẽ và bóc đúng 6 cột
+        # Đọc dữ liệu từ Gsheets
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
+        # Cắt lấy 6 cột
         if len(df_raw.columns) >= 7:
-            df = df_raw.iloc[:, 1:7].copy() # Lấy 6 cột: B, C, D, E, F, G
+            df = df_raw.iloc[:, 1:7].copy()
         else:
             df = df_raw.copy()
             
         while len(df.columns) < 6:
             df[f"Cot_{len(df.columns)}"] = ""
             
-        # Thêm cột Lĩnh Vực vào vị trí thứ 6
         df.columns = ["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]
         df = df.dropna(subset=['TEN_BAO_CAO'])
         
-        df['KY_BAO_CAO'] = df['KY_BAO_CAO'].fillna("Không xác định")
-        df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].fillna("Chưa xử lý")
-        df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].fillna("Không xác định")
-        df['LINH_VUC'] = df['LINH_VUC'].fillna("Không xác định")
+        # CHỐNG LỖI ATTRIBUTE ERROR (.str.contains) => Ép kiểu toàn bộ về string
+        df['TEN_BAO_CAO'] = df['TEN_BAO_CAO'].astype(str)
+        df['KY_BAO_CAO'] = df['KY_BAO_CAO'].astype(str).replace('nan', 'Không xác định')
+        df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].astype(str).replace('nan', 'Chưa xử lý')
+        df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].astype(str).replace('nan', 'Không xác định')
+        df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], errors='coerce')
         df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
@@ -300,8 +302,9 @@ def chk_ky(row_ky):
     if not sel_ky: return False
     return any(k in str(row_ky) for k in sel_ky)
 
+# Ép kiểu str() cho cột TEN_BAO_CAO lúc quét mask để chống lỗi 100%
 mask = (
-    st.session_state.df_master['TEN_BAO_CAO'].str.contains(txt_search, case=False, na=False) &
+    st.session_state.df_master['TEN_BAO_CAO'].astype(str).str.contains(txt_search, case=False, na=False) &
     st.session_state.df_master['KY_BAO_CAO'].apply(chk_ky) &
     st.session_state.df_master['THANG'].isin(sel_thang) &
     st.session_state.df_master['CANH_BAO'].isin(sel_tt) &
@@ -354,7 +357,7 @@ with col_main:
     
     # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
-        st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU LÊN CLOUD** để đẩy dữ liệu lên Google Sheets.")
+        st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
         df_filtered.insert(0, "🗑️ Xóa", False)
 
         c_cols = {
@@ -404,7 +407,7 @@ with col_main:
             except Exception as e:
                 st.error(f"🚨 LỖI LƯU CLOUD: {e}")
     else:
-        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only). Bấm vào tiêu đề cột trên bảng để Sắp xếp A-Z trực tiếp.")
+        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only).")
         st.dataframe(
             df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "CANH_BAO", "DON_VI_YEU_CAU", "LINH_VUC"]],
             use_container_width=True, hide_index=True,
