@@ -44,7 +44,7 @@ if not st.session_state.system_unlocked:
     
     sys_pwd = st.text_input("Mã bảo mật:", type="password")
     if st.button("Mở khóa 🔑", use_container_width=True, type="primary"):
-        if sys_pwd == "matkhauhethong": 
+        if sys_pwd == "CY": 
             st.session_state.system_unlocked = True
             st.rerun()
         else:
