@@ -200,9 +200,7 @@ with st.sidebar:
     # Thêm tham số ttl=0 trực tiếp vào lệnh read
     df_raw = conn.read(spreadsheet=SPREADSHEET_URL, worksheet="Data", ttl=0)
     return df_raw
-        st.rerun()             # Chạy lại app để đọc file Google Sheet mới
-    st.divider()
-
+        
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).upper()
     tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
