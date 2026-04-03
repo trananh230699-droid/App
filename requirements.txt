@@ -3,3 +3,5 @@ pandas
 plotly
 st-gsheets-connection
 google-cloud-firestore
+gspread
+google-auth
