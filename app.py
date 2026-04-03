@@ -86,9 +86,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==========================================
-# 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU
+# 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU BỌC THÉP CHỐNG LỖI 400
 # ==========================================
-# Link đã được làm sạch, bỏ phần đuôi ?gid=... gây lỗi 400
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -109,32 +108,46 @@ def phan_loai(row):
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        df = conn.read(
-            spreadsheet=SPREADSHEET_URL, 
-            worksheet="Data", 
-            usecols=[1, 2, 3, 4, 5]
-        )
+        # BỎ tham số worksheet="Data" và usecols để chống Google API báo lỗi 400
+        # Đọc trực tiếp sheet đầu tiên
+        df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
+        
+        # Cắt lấy 5 cột chứa dữ liệu (Tương đương từ B đến F trong Excel cũ)
+        try:
+            df = df_raw.iloc[:, 1:6].copy()
+        except:
+            df = df_raw.copy()
+            
+        # Đảm bảo đủ 5 cột (chống lỗi thiếu cột)
+        while len(df.columns) < 5:
+            df[f"Cot_Trong_{len(df.columns)}"] = ""
+            
         df.columns = [
             "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
             "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
         ]
         df = df.dropna(subset=['TEN_BAO_CAO'])
         
-        # Điền giá trị mặc định tránh lỗi
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].fillna("Không xác định")
         df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].fillna("Chưa xử lý")
         df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].fillna("Không xác định")
         
-        # Xử lý thời gian
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], errors='coerce')
         df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
         
-        # Đánh giá cảnh báo
         df['CANH_BAO'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
     except Exception as e:
-        st.error(f"❌ LỖI ĐỌC GOOGLE SHEETS: {e}")
+        # NẾU VẪN LỖI, ĐÂY LÀ THÔNG BÁO HƯỚNG DẪN CÁCH MỞ KHÓA TỪ PHÍA CLOUD
+        st.error("🚨 MÁY CHỦ GOOGLE TỪ CHỐI TRUY CẬP (LỖI 400/403)")
+        st.info("""
+        **NẾU BẠN THẤY THÔNG BÁO NÀY TRÊN CLOUD, BẠN CHƯA CẤP QUYỀN CHO BOT:**
+        1. Về trang cài đặt của Streamlit Cloud (App Settings) > **Advanced Settings > Secrets**.
+        2. Chắc chắn bạn đã dán thông tin file JSON chứa `project_id`, `private_key`, `client_email`... vào ô đó theo đúng định dạng TOML.
+        3. Bạn PHẢI vào Google Sheets của bạn, bấm nút **Share (Chia sẻ)**, và thêm email `client_email` của con Bot vào làm **Người chỉnh sửa (Editor)**.
+        """)
+        st.error(f"Chi tiết lỗi kỹ thuật: {e}")
         st.stop()
 
 if "df_master" not in st.session_state:
@@ -167,12 +180,10 @@ with st.sidebar:
     st.header("🔍 BỘ LỌC")
     txt_search = st.text_input("Tên báo cáo:")
     
-    # Lọc Kỳ
     k_list = st.session_state.df_master['KY_BAO_CAO'].unique().tolist()
     all_k = set([k for ky in k_list if isinstance(ky, str) for k in ky.split(", ")])
     sel_ky = st.multiselect("Lọc Kỳ:", list(all_k), default=list(all_k))
     
-    # Lọc Tháng
     t_list = sorted([m for m in st.session_state.df_master['THANG'].unique() if m != 0])
     t_opts = t_list + [0]
     
@@ -181,7 +192,6 @@ with st.sidebar:
 
     sel_thang = st.multiselect("Lọc Tháng:", options=t_opts, default=t_opts, format_func=fmt_m)
     
-    # Lọc Trạng thái & Đơn vị
     tt_opts = ["🚨 TRỄ HẠN", "🔥 CẦN LÀM GẤP", "⏳ ĐANG THỰC HIỆN", "✅ HOÀN THÀNH"]
     sel_tt = st.multiselect("Trạng thái:", tt_opts, default=tt_opts)
 
@@ -247,7 +257,6 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # --- QUYỀN ADMIN ---
     if st.session_state.role == "Admin":
         st.info("💡 Thêm/Xóa/Sửa là **TẠM THỜI**. Phải nhập mật khẩu bấm **LƯU LÊN CLOUD** mới có tác dụng.")
         df_filtered.insert(0, "🗑️ Xóa", False)
@@ -258,7 +267,7 @@ with col_main:
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
             "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width="medium"), 
             "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width="medium"),
-            "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái gốc", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"], width="medium"),
+            "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"], width="medium"),
             "CANH_BAO": st.column_config.TextColumn("Tình trạng", disabled=True, width="medium"),
             "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium")
         }
@@ -275,7 +284,6 @@ with col_main:
             column_config=c_cols
         )
 
-        # XỬ LÝ XÓA & LƯU TẠM THỜI
         del_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
         if del_ids:
             st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(del_ids)]
@@ -319,7 +327,11 @@ with col_main:
                             "TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", 
                             "TRANG_THAI_GOC", "DON_VI_YEU_CAU"
                         ]]
-                        conn.update(worksheet="Data", data=df_to_save)
+                        # Phải chèn thêm 1 cột STT để đẩy lùi dữ liệu sang đúng Cột B,C,D,E,F của file Gsheets cũ
+                        df_upload = df_to_save.copy()
+                        df_upload.insert(0, "STT_ID", range(1, len(df_upload) + 1))
+                        
+                        conn.update(spreadsheet=SPREADSHEET_URL, data=df_upload)
                         st.success("✅ Đã chốt hạ thành công lên Google Sheets!")
                         st.cache_data.clear()
                         st.session_state.df_master = load_data()
@@ -329,7 +341,6 @@ with col_main:
                 else:
                     st.error("🚨 Sai mật khẩu!")
     else:
-        # --- QUYỀN KHÁCH ---
         st.info("👁️ **CHẾ ĐỘ KHÁCH:** Các tính năng thêm, sửa, xóa đã bị khóa.")
         
         c_cols_g = {
@@ -446,13 +457,13 @@ if st.session_state.role == "Admin":
             with st.form("form_them", clear_on_submit=True):
                 c_t1, c_t2 = st.columns([2, 1])
                 with c_t1: f_ten = st.text_input("Tên báo cáo *")
-                with c_t2: f_dv = st.text_input("Đơn vị yêu cầu báo cáo")
+                with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
                 
                 c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
                 with c_f1: 
                     f_k = st.multiselect("Kỳ báo cáo", options=list(k_map.keys()))
                 with c_f2: 
-                    f_d = st.date_input("Hạn chót (Dự phòng)", value=datetime.date.today())
+                    f_d = st.date_input("Hạn chót", value=datetime.date.today())
                 with c_f3: 
                     f_tt = st.selectbox("Trạng thái", ["Chưa xử lý", "Đang thực hiện", "Hoàn thành"])
                 
