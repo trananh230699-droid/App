@@ -189,7 +189,7 @@ if st.session_state.system_auth and not st.session_state.logged_in:
 # ==========================================
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
-conn = st.connection("gsheets", type=GSheetsConnection)
+df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
 today = pd.Timestamp.today().normalize()
 
 def phan_loai(row):
@@ -225,7 +225,7 @@ def style_status(val):
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
+        df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
         header_idx = -1
         for i, row in df_raw.head(10).iterrows():
