@@ -58,6 +58,7 @@ if "role" not in st.session_state:
 # GIAO DIỆN CSS: TÁCH BIỆT HACKER VÀ LÀM VIỆC
 # ==========================================
 if not st.session_state.logged_in:
+    # ---------------- CSS HACKER (KHI CHƯA ĐĂNG NHẬP) ----------------
     css_code = """
         <style>
         .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
@@ -75,6 +76,7 @@ if not st.session_state.logged_in:
         </style>
     """
 else:
+    # ---------------- CSS HIỆN ĐẠI (KHI ĐÃ ĐĂNG NHẬP VÀO LÀM VIỆC) ----------------
     css_code = """
         <style>
         .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
@@ -122,7 +124,7 @@ if not st.session_state.system_auth:
             if sys_pwd == "CY":
                 add_log("SUCCESS")
                 
-                # HIỆU ỨNG LOADING CHẠY NGANG MƯỢT MÀ
+                # HIỆU ỨNG LOADING CHẠY NGANG - MÀU MÈ, CHUYÊN NGHIỆP HƠN
                 loader = st.empty()
                 base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
                 spinners = ['|', '/', '-', '\\']
@@ -189,7 +191,6 @@ if st.session_state.system_auth and not st.session_state.logged_in:
 # ==========================================
 # GIAI ĐOẠN 3: ỨNG DỤNG LÀM VIỆC CHÍNH THỨC
 # ==========================================
-# URL sạch đã lược bỏ đuôi gây lỗi
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -221,19 +222,19 @@ def load_data():
         # Lấy toàn bộ file để quét tự động (Bỏ qua các hàng title dư thừa)
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
-        # Tìm hàng tiêu đề thực sự
+        # Tìm hàng tiêu đề thực sự (Ép kiểu tuyệt đối chống lỗi float)
         header_idx = -1
         for i, row in df_raw.head(10).iterrows():
-            row_str = " ".join(row.astype(str)).lower()
+            row_str = " ".join([str(val) for val in row]).lower()
             if "báo cáo" in row_str or "hạn chót" in row_str or "trạng thái" in row_str:
                 header_idx = i
                 break
         
         if header_idx != -1:
-            df_raw.columns = df_raw.iloc[header_idx].astype(str).str.strip()
+            df_raw.columns = [str(c).strip() for c in df_raw.iloc[header_idx]]
             df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
         else:
-            df_raw.columns = df_raw.columns.astype(str).str.strip()
+            df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
         # Ánh xạ cột thông minh
         col_ten = get_col(df_raw, ["tên", "ten", "công việc"], 1)
@@ -260,7 +261,7 @@ def load_data():
         df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].astype(str).replace('nan', 'Không xác định')
         df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
-        # ĐỊNH DẠNG NGÀY THÁNG VIỆT NAM (Giải quyết lỗi không khoanh đỏ lịch)
+        # ĐỊNH DẠNG NGÀY THÁNG VIỆT NAM
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
         df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
         
@@ -351,6 +352,7 @@ with col_main:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
+    # --- BỘ CÔNG CỤ SẮP XẾP A-Z ---
     st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A)")
     c_s1, c_s2 = st.columns([1.5, 2])
     
@@ -381,6 +383,7 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
+    # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
         st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
         df_filtered.insert(0, "🗑️ Xóa", False)
@@ -423,7 +426,6 @@ with col_main:
         if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
             try:
                 df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
-                # Thêm số thứ tự và chèn 1 cột rỗng ở đầu để căn đúng form cũ của bạn trên Google Sheets (STT, Tên, Kỳ, Hạn...)
                 df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                 conn.update(worksheet="Data", data=df_to_save)
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
