@@ -7,6 +7,8 @@ import unicodedata
 import os
 import calendar
 import time
+import json
+import random
 from streamlit_gsheets import GSheetsConnection
 
 # ==========================================
@@ -17,6 +19,30 @@ st.set_page_config(
     page_icon="☑️", 
     layout="wide"
 )
+
+# ==========================================
+# HỆ THỐNG GHI LOG (LỊCH SỬ TRUY CẬP)
+# ==========================================
+LOG_FILE = "access_log.json"
+
+def get_logs():
+    if os.path.exists(LOG_FILE):
+        try:
+            with open(LOG_FILE, "r") as f:
+                return json.load(f)
+        except:
+            pass
+    return []
+
+def add_log(status):
+    logs = get_logs()
+    # Giả lập IP ngẫu nhiên để tăng độ ngầu, hoặc bạn có thể cấu hình lấy IP thật sau
+    ip = f"192.168.1.{random.randint(10, 250)}"
+    now = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    logs.append({"time": now, "ip": ip, "status": status})
+    # Chỉ lưu 5 lượt truy cập gần nhất
+    with open(LOG_FILE, "w") as f:
+        json.dump(logs[-5:], f)
 
 # ==========================================
 # GIAO DIỆN HIỆN ĐẠI, DỄ NHÌN, ĐẬM CHẤT CYBER (CYBER THEME)
@@ -49,8 +75,8 @@ cyber_css = """
     
     /* Giao diện khung đăng nhập/xác thực */
     .login-box { 
-        max-width: 450px; 
-        margin: 60px auto; 
+        max-width: 480px; 
+        margin: 40px auto; 
         padding: 30px; 
         background: #0f0f0f; 
         border-radius: 10px; 
@@ -58,6 +84,13 @@ cyber_css = """
         text-align: center; 
         border: 2px solid #33ff33;
     }
+    
+    /* Bảng lịch sử truy cập */
+    .log-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; color: #33ff33; }
+    .log-table th, .log-table td { border: 1px solid #114411; padding: 6px; text-align: center; }
+    .log-table th { background-color: #002200; color: #55ff55; }
+    .stat-ok { color: #00ff00; font-weight: bold; }
+    .stat-fail { color: #ff3333; font-weight: bold; }
     
     /* Tùy chỉnh input text đậm chất hack */
     .stTextInput input {
@@ -130,9 +163,26 @@ if not st.session_state.system_authenticated:
     col_logo1, col_logo2, col_logo3 = st.columns([1, 1.5, 1])
     with col_logo2:
         if os.path.exists("logo.png"): 
-            st.image("logo.png", width=400) # Logo gấp đôi
+            st.image("logo.png", width=240) # Logo gấp đôi
             
     st.markdown("### 🖥️ HỆ THỐNG GIÁM SÁT AN NINH MẠNG")
+    
+    # ----------------------------------------------------
+    # BẢNG HIỂN THỊ LỊCH SỬ TRUY CẬP
+    # ----------------------------------------------------
+    st.markdown("<div style='text-align:left; font-size:13px; margin-bottom:5px;'>[ 5 LỊCH SỬ TRUY CẬP GẦN NHẤT ]:</div>", unsafe_allow_html=True)
+    logs = get_logs()
+    if not logs:
+        st.markdown("<p style='color:#88ff88; font-size:13px;'>Chưa có dữ liệu truy cập.</p>", unsafe_allow_html=True)
+    else:
+        html_table = '<table class="log-table"><tr><th>THỜI GIAN</th><th>IP TRUY CẬP</th><th>TRẠNG THÁI</th></tr>'
+        for log in reversed(logs): # Lật ngược để xem cái mới nhất ở trên
+            css_class = "stat-ok" if log["status"] == "SUCCESS" else "stat-fail"
+            html_table += f'<tr><td>{log["time"]}</td><td>{log["ip"]}</td><td class="{css_class}">{log["status"]}</td></tr>'
+        html_table += '</table>'
+        st.markdown(html_table, unsafe_allow_html=True)
+    # ----------------------------------------------------
+        
     st.markdown("<p style='color:#33ff33; opacity:0.7;'>Vui lòng nhập mã đăng nhập để truy cập</p>", unsafe_allow_html=True)
     
     with st.form("system_auth_form"):
@@ -141,32 +191,25 @@ if not st.session_state.system_authenticated:
         submit_auth = st.form_submit_button("XÁC THỰC QUYỀN TRUY CẬP")
         
         if submit_auth:
-            if sys_pwd == "CY": # Mã đăng nhập Tac Chien
-                # HIỆU ỨNG LOADING KIỂU HACKER, CÓ %, TẦM 3 GIÂY, CHUYÊN NGHIỆP
+            if sys_pwd == "CY": # Mã đăng nhập
+                add_log("SUCCESS")
+                
+                # HIỆU ỨNG LOADING CHẠY NGANG [%], TẦM 3 GIÂY
                 auth_placeholder = st.empty()
                 with auth_placeholder.container():
-                    st.markdown('<div class="terminal-load">', unsafe_allow_html=True)
-                    lines = [
-                        "> Initializing secure protocol...",
-                        "> Verifying credentials against central node...",
-                        "> Token decrypted: [CY-OPS-404x1]",
-                        "> Injecting security parameters...",
-                        "> Connection established via port 8501."
-                    ]
-                    load_text = ""
-                    for line in lines:
-                        load_text += line + "<br>"
-                        st.markdown(load_text, unsafe_allow_html=True)
-                        time.sleep(0.3) # 0.3 * 5 = 1.5 giây hiện chữ
+                    load_text = "> ESTABLISHING SECURE CONNECTION... [ OK ]<br>> DECRYPTING SYSTEM DATABASE:<br>"
                     
-                    # Chạy % tầm 1.5 giây
-                    for percent in range(0, 101, 20):
-                        time.sleep(0.3)
-                        pct_text = f"> LOADING SYSTEM DATABASE... {percent}%"
-                        st.markdown(load_text + pct_text, unsafe_allow_html=True)
+                    # Vòng lặp chạy 20 bước, mỗi bước 0.15s => Tổng 3 giây
+                    for i in range(1, 21):
+                        bar_filled = "█" * i
+                        bar_empty = "-" * (20 - i)
+                        percent = i * 5
+                        display_text = f"{load_text}  [{bar_filled}{bar_empty}] {percent}%"
                         
-                    st.markdown(load_text + "> LOADING SYSTEM DATABASE... 100%<br>> ACCESS GRANTED. WELCOME COMANDANTE.", unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="terminal-load">{display_text}</div>', unsafe_allow_html=True)
+                        time.sleep(0.15)
+                        
+                    st.markdown(f'<div class="terminal-load">{load_text}  [████████████████████] 100%<br>> ACCESS GRANTED. WELCOME COMANDANTE.</div>', unsafe_allow_html=True)
                     time.sleep(0.5)
                 
                 # Hoàn tất xác thực và lưu phiên F5
@@ -176,7 +219,11 @@ if not st.session_state.system_authenticated:
                 auth_placeholder.empty()
                 st.rerun()
             else:
+                add_log("FAILED")
                 st.error("🚨 Mã Đăng nhập không chính xác! Truy cập bị từ chối.")
+                time.sleep(1.5)
+                st.rerun() # Rerun lại để cập nhật bảng log
+                
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
@@ -252,7 +299,8 @@ st.markdown(cyber_work_css, unsafe_allow_html=True)
 # ==========================================
 # 3. KẾT NỐI GSHEETS & TẢI DỮ LIỆU
 # ==========================================
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit?gid=2004413414#gid=2004413414&fvid=58293819" 
+# Link đã được dọn dẹp sạch sẽ để chống lỗi 400 Bad Request
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
@@ -300,7 +348,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ==========================================
-# 4. GIAO DIỆN HEADER & BỘ LỌC TÌM KIẾM (KHÔNG THAY ĐỔI)
+# 4. GIAO DIỆN HEADER & BỘ LỌC TÌM KIẾM
 # ==========================================
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -365,7 +413,7 @@ mask = (
 df_filtered = st.session_state.df_master[mask].copy()
 
 # ==========================================
-# 5. BẢNG CÔNG VIỆC CHI TIẾT (KHÔNG THAY ĐỔI)
+# 5. BẢNG CÔNG VIỆC CHI TIẾT
 # ==========================================
 metric_container = st.container()
 st.markdown("<br>", unsafe_allow_html=True)
@@ -422,7 +470,7 @@ with col_main:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. BIỂU ĐỒ & LỊCH NHẮC VIỆC (KHÔNG THAY ĐỔI)
+# 6. BIỂU ĐỒ & LỊCH NHẮC VIỆC
 # ==========================================
 with metric_container:
     c_m1, c_m2, c_m3 = st.columns(3)
