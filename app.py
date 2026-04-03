@@ -192,6 +192,14 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
+# --- TẠO SIDEBAR ĐỂ LÀM MỚI DỮ LIỆU ---
+with st.sidebar:
+    st.header("Thao tác")
+    if st.button("🔄 Tải lại dữ liệu mới nhất"):
+        st.cache_data.clear()  # Xóa bộ nhớ đệm
+        st.rerun()             # Chạy lại app để đọc file Google Sheet mới
+    st.divider()
+
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).upper()
     tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
