@@ -192,12 +192,9 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
-# --- TẠO SIDEBAR ĐỂ LÀM MỚI DỮ LIỆU ---
-with st.sidebar:
-    st.header("Thao tác")
-    if st.button("🔄 Tải lại dữ liệu mới nhất"):
-        def load_data():
-    # Thêm tham số ttl=0 trực tiếp vào lệnh read
+@st.cache_data(ttl=0) # Đặt ttl=0 để không lưu bộ nhớ đệm quá lâu
+def load_data():
+    # Thêm spreadsheet=SPREADSHEET_URL để tránh lỗi "None"
     df_raw = conn.read(spreadsheet=SPREADSHEET_URL, worksheet="Data", ttl=0)
     return df_raw
         
