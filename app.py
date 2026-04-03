@@ -58,7 +58,6 @@ if "role" not in st.session_state:
 # GIAO DIỆN CSS: TÁCH BIỆT HACKER VÀ LÀM VIỆC
 # ==========================================
 if not st.session_state.logged_in:
-    # ---------------- CSS HACKER (KHI CHƯA ĐĂNG NHẬP) ----------------
     css_code = """
         <style>
         .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
@@ -76,7 +75,6 @@ if not st.session_state.logged_in:
         </style>
     """
 else:
-    # ---------------- CSS HIỆN ĐẠI (KHI ĐÃ ĐĂNG NHẬP VÀO LÀM VIỆC) ----------------
     css_code = """
         <style>
         .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
@@ -123,8 +121,6 @@ if not st.session_state.system_auth:
         if submit_auth:
             if sys_pwd == "CY":
                 add_log("SUCCESS")
-                
-                # HIỆU ỨNG LOADING CHẠY NGANG - MÀU MÈ, CHUYÊN NGHIỆP HƠN
                 loader = st.empty()
                 base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
                 spinners = ['|', '/', '-', '\\']
@@ -197,16 +193,16 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
 def phan_loai(row):
-    tt = str(row['TRANG_THAI_GOC']).upper()
+    tt = str(row.get('TINH_TRANG', '')).upper()
     tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
     
-    if "HOAN THANH" in tt_norm: return "✅ HOÀN THÀNH"
-    if pd.isna(row['DEADLINE']): return "⏳ ĐANG THỰC HIỆN"
+    if "HOAN THANH" in tt_norm: return "🟢 Đã hoàn thành"
+    if pd.isna(row['DEADLINE']): return "⏳ Đang thực hiện"
         
     days_diff = (row['DEADLINE'] - today).days
-    if days_diff < 0: return "🚨 TRỄ HẠN"
-    if 0 <= days_diff <= 5: return "🔥 CẦN LÀM GẤP"
-    return "⏳ ĐANG THỰC HIỆN"
+    if days_diff < 0: return "🔴 Trễ hạn"
+    if 0 <= days_diff <= 5: return "🔴 Cần thực hiện ngay"
+    return "⏳ Đang thực hiện"
 
 # HÀM LẤY CỘT TỰ ĐỘNG CHỐNG LỆCH DỮ LIỆU GOOGLE SHEETS
 def get_col(df, keywords, fallback_idx):
@@ -216,17 +212,25 @@ def get_col(df, keywords, fallback_idx):
     if fallback_idx < len(df.columns): return df.columns[fallback_idx]
     return None
 
+def style_status(val):
+    val_str = str(val)
+    if "Đã hoàn thành" in val_str:
+        return 'background-color: #2e7d32; color: white;' # Xanh lá
+    elif "Cần thực hiện ngay" in val_str:
+        return 'background-color: #d32f2f; color: white;' # Đỏ sáng
+    elif "Trễ hạn" in val_str:
+        return 'background-color: #b71c1c; color: white;' # Đỏ sậm
+    return ''
+
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        # Lấy toàn bộ file để quét tự động (Bỏ qua các hàng title dư thừa)
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
         
-        # Tìm hàng tiêu đề thực sự (Ép kiểu tuyệt đối chống lỗi float)
         header_idx = -1
         for i, row in df_raw.head(10).iterrows():
             row_str = " ".join([str(val) for val in row]).lower()
-            if "báo cáo" in row_str or "hạn chót" in row_str or "trạng thái" in row_str:
+            if "báo cáo" in row_str or "hạn chót" in row_str or "tình trạng" in row_str or "trạng thái" in row_str:
                 header_idx = i
                 break
         
@@ -240,7 +244,7 @@ def load_data():
         col_ten = get_col(df_raw, ["tên", "ten", "công việc"], 1)
         col_ky = get_col(df_raw, ["kỳ", "ky"], 2)
         col_han = get_col(df_raw, ["hạn", "han", "deadline"], 3)
-        col_tt = get_col(df_raw, ["trạng", "trang", "tt"], 4)
+        col_tt = get_col(df_raw, ["tình trạng", "tinh trang", "trạng", "trang", "tt"], 4)
         col_dv = get_col(df_raw, ["đơn", "don", "yêu cầu"], 5)
         col_lv = get_col(df_raw, ["lĩnh", "linh", "vực"], 6)
 
@@ -248,7 +252,7 @@ def load_data():
             "TEN_BAO_CAO": df_raw[col_ten] if col_ten else pd.Series([""]*len(df_raw)),
             "KY_BAO_CAO": df_raw[col_ky] if col_ky else pd.Series([""]*len(df_raw)),
             "DEADLINE": df_raw[col_han] if col_han else pd.Series([""]*len(df_raw)),
-            "TRANG_THAI_GOC": df_raw[col_tt] if col_tt else pd.Series([""]*len(df_raw)),
+            "TINH_TRANG": df_raw[col_tt] if col_tt else pd.Series([""]*len(df_raw)),
             "DON_VI_YEU_CAU": df_raw[col_dv] if col_dv else pd.Series([""]*len(df_raw)),
             "LINH_VUC": df_raw[col_lv] if col_lv else pd.Series([""]*len(df_raw))
         }
@@ -257,15 +261,14 @@ def load_data():
         df = df.dropna(subset=['TEN_BAO_CAO'])
         df['TEN_BAO_CAO'] = df['TEN_BAO_CAO'].astype(str)
         df['KY_BAO_CAO'] = df['KY_BAO_CAO'].astype(str).replace('nan', 'Không xác định')
-        df['TRANG_THAI_GOC'] = df['TRANG_THAI_GOC'].astype(str).replace('nan', 'Chưa xử lý')
+        df['TINH_TRANG'] = df['TINH_TRANG'].astype(str).replace('nan', '⏳ Đang thực hiện')
         df['DON_VI_YEU_CAU'] = df['DON_VI_YEU_CAU'].astype(str).replace('nan', 'Không xác định')
         df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
-        # ĐỊNH DẠNG NGÀY THÁNG VIỆT NAM
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
-        df['THANG'] = df['DEADLINE'].dt.month.fillna(0).astype(int)
         
-        df['CANH_BAO'] = df.apply(phan_loai, axis=1)
+        # Áp dụng logic nhắc việc tự động
+        df['TINH_TRANG'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
     except Exception as e:
@@ -306,14 +309,8 @@ with st.sidebar:
     all_k = set([k for ky in k_list if isinstance(ky, str) for k in ky.split(", ")])
     sel_ky = st.multiselect("Lọc Kỳ:", list(all_k), default=list(all_k))
     
-    t_list = sorted([m for m in st.session_state.df_master['THANG'].unique() if m != 0])
-    t_opts = t_list + [0]
-    
-    def fmt_m(x): return f"Tháng {x}" if x != 0 else "Chưa có hạn"
-    sel_thang = st.multiselect("Lọc Tháng:", options=t_opts, default=t_opts, format_func=fmt_m)
-    
-    tt_opts = ["🚨 TRỄ HẠN", "🔥 CẦN LÀM GẤP", "⏳ ĐANG THỰC HIỆN", "✅ HOÀN THÀNH"]
-    sel_tt = st.multiselect("Trạng thái:", tt_opts, default=tt_opts)
+    tt_opts = ["🔴 Trễ hạn", "🔴 Cần thực hiện ngay", "⏳ Đang thực hiện", "🟢 Đã hoàn thành"]
+    sel_tt = st.multiselect("Lọc Tình trạng:", tt_opts, default=tt_opts)
 
     dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
     sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
@@ -334,8 +331,7 @@ def chk_ky(row_ky):
 mask = (
     st.session_state.df_master['TEN_BAO_CAO'].astype(str).str.contains(txt_search, case=False, na=False) &
     st.session_state.df_master['KY_BAO_CAO'].apply(chk_ky) &
-    st.session_state.df_master['THANG'].isin(sel_thang) &
-    st.session_state.df_master['CANH_BAO'].isin(sel_tt) &
+    st.session_state.df_master['TINH_TRANG'].isin(sel_tt) &
     st.session_state.df_master['DON_VI_YEU_CAU'].isin(sel_dv) &
     st.session_state.df_master['LINH_VUC'].isin(sel_lv)
 )
@@ -358,7 +354,7 @@ with col_main:
     
     sort_opts = [
         "Mặc định (Không sắp xếp)", "Tên công việc", "Kỳ báo cáo", 
-        "Hạn chót", "Trạng thái gốc", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
+        "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
     ]
     with c_s1:
         sort_col = st.selectbox("Sắp xếp theo:", sort_opts)
@@ -369,7 +365,7 @@ with col_main:
         "Tên công việc": "TEN_BAO_CAO", 
         "Kỳ báo cáo": "KY_BAO_CAO", 
         "Hạn chót": "DEADLINE", 
-        "Trạng thái gốc": "TRANG_THAI_GOC", 
+        "Tình trạng": "TINH_TRANG", 
         "Đơn vị yêu cầu báo cáo": "DON_VI_YEU_CAU",
         "Lĩnh vực": "LINH_VUC"
     }
@@ -385,7 +381,7 @@ with col_main:
     
     # --- HIỂN THỊ DỮ LIỆU ---
     if st.session_state.role == "Admin":
-        st.info("💡 Bấm trực tiếp vào bảng để Sửa/Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
+        st.info("💡 Bấm trực tiếp vào bảng để chọn hoàn thành, Sửa hoặc Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
         df_filtered.insert(0, "🗑️ Xóa", False)
 
         c_cols = {
@@ -394,14 +390,16 @@ with col_main:
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
             "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
             "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-            "TRANG_THAI_GOC": st.column_config.SelectboxColumn("Trạng thái", options=["Chưa xử lý", "Đang thực hiện", "Hoàn thành"]),
-            "CANH_BAO": st.column_config.TextColumn("Tình trạng", disabled=True),
+            "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
             "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
             "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
         }
 
+        # Áp dụng màu tự động theo mức độ hoàn thành thông qua Styler object
+        styled_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
+
         edited_df = st.data_editor(
-            df_filtered,
+            styled_df,
             key=st.session_state.editor_key,
             use_container_width=True, hide_index=True, num_rows="dynamic",
             column_config=c_cols
@@ -418,14 +416,14 @@ with col_main:
             st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
             st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
             st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
-            st.session_state.df_master.at[m_idx, 'TRANG_THAI_GOC'] = row['TRANG_THAI_GOC']
+            # Cập nhật và tinh chỉnh trạng thái tự động hoặc ghi nhận đã hoàn thành
+            st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(row)
             st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
             st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
-            st.session_state.df_master.at[m_idx, 'CANH_BAO'] = phan_loai(row)
 
         if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
             try:
-                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
                 df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                 conn.update(worksheet="Data", data=df_to_save)
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
@@ -437,7 +435,7 @@ with col_main:
     else:
         st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only).")
         st.dataframe(
-            df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TRANG_THAI_GOC", "CANH_BAO", "DON_VI_YEU_CAU", "LINH_VUC"]],
+            df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].style.map(style_status, subset=['TINH_TRANG']),
             use_container_width=True, hide_index=True,
             column_config={
                 "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY")
@@ -451,8 +449,8 @@ with col_main:
 with metric_container:
     c_m1, c_m2, c_m3 = st.columns(3)
     total = len(df_filtered)
-    done = len(df_filtered[df_filtered['CANH_BAO'] == "✅ HOÀN THÀNH"])
-    late = len(df_filtered[df_filtered['CANH_BAO'] == "🚨 TRỄ HẠN"])
+    done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
+    late = len(df_filtered[df_filtered['TINH_TRANG'] == "🔴 Trễ hạn"])
     
     tl_ht = round(done/total*100) if total > 0 else 0
     
@@ -464,10 +462,10 @@ with col_sub:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; font-weight:bold;'>📊 TỶ LỆ TIẾN ĐỘ</p>", unsafe_allow_html=True)
     
-    mau_bd = {"✅ HOÀN THÀNH": "#10B981", "🚨 TRỄ HẠN": "#EF4444", "⏳ ĐANG THỰC HIỆN": "#3B82F6", "🔥 CẦN LÀM GẤP": "#F59E0B"}
+    mau_bd = {"🟢 Đã hoàn thành": "#10B981", "🔴 Trễ hạn": "#EF4444", "⏳ Đang thực hiện": "#3B82F6", "🔴 Cần thực hiện ngay": "#F59E0B"}
     
     if total > 0:
-        fig = px.pie(df_filtered, names='CANH_BAO', hole=0.5, color='CANH_BAO', color_discrete_map=mau_bd)
+        fig = px.pie(df_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div><br>', unsafe_allow_html=True)
@@ -477,34 +475,42 @@ with col_sub:
     
     now = datetime.datetime.now()
     cal = calendar.monthcalendar(now.year, now.month)
-    df_cx = df_filtered[df_filtered['CANH_BAO'] != "✅ HOÀN THÀNH"].copy()
+    df_cx = df_filtered[df_filtered['TINH_TRANG'] != "🟢 Đã hoàn thành"].copy()
     
-    # Cập nhật điều kiện lọc lịch để khoanh đúng tháng và năm hiện tại
     df_cx_thang = df_cx[(df_cx['DEADLINE'].dt.month == now.month) & (df_cx['DEADLINE'].dt.year == now.year)]
-    dls = df_cx_thang['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
+    
+    # Lọc phân loại các ngày hạn gấp (<= 5 ngày) để khoanh đỏ
+    dls_urgent = df_cx_thang[(df_cx_thang['DEADLINE'] - today).dt.days <= 5]['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
+    dls_all = df_cx_thang['DEADLINE'].dt.day.dropna().astype(int).unique().tolist()
+    dls_normal = [d for d in dls_all if d not in dls_urgent]
 
     html_cal = '<table style="width:100%; border-collapse: collapse; font-size:13px; text-align:center;">'
     html_cal += '<tr><th style="color:#ff3333">CN</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th></tr>'
     
-    c_tdl = 'background:#EF4444; border: 3px solid #0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:18px; margin:auto; font-weight:bold; box-sizing:border-box;'
-    c_t = 'background:#0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
-    c_dl = 'background:#EF4444; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
+    c_today_urgent = 'background:#EF4444; border: 3px solid #0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:18px; margin:auto; font-weight:bold; box-sizing:border-box;'
+    c_today = 'background:#0078D7; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
+    c_urgent = 'background:#EF4444; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
+    c_normal = 'background:#F59E0B; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
 
     for week in cal:
         html_cal += '<tr>'
         for day in week:
             if day == 0: html_cal += '<td></td>'
-            elif day == now.day and day in dls: 
-                html_cal += f'<td style="padding:5px;"><div style="{c_tdl}">{day}</div></td>'
+            elif day == now.day and day in dls_urgent: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_today_urgent}">{day}</div></td>'
+            elif day == now.day and day in dls_normal: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_today}">{day}</div></td>'
             elif day == now.day: 
-                html_cal += f'<td style="padding:5px;"><div style="{c_t}">{day}</div></td>'
-            elif day in dls: 
-                html_cal += f'<td style="padding:5px;"><div style="{c_dl}">{day}</div></td>'
+                html_cal += f'<td style="padding:5px;"><div style="{c_today}">{day}</div></td>'
+            elif day in dls_urgent: 
+                html_cal += f'<td style="padding:5px;"><div style="{c_urgent}">{day}</div></td>'
+            elif day in dls_normal:
+                html_cal += f'<td style="padding:5px;"><div style="{c_normal}">{day}</div></td>'
             else: html_cal += f'<td>{day}</td>'
         html_cal += '</tr>'
     html_cal += '</table>'
     st.markdown(html_cal, unsafe_allow_html=True)
-    st.caption("🔴 Đỏ: Hạn nộp - 🔵 Xanh: Hôm nay")
+    st.caption("🔴 Đỏ: Gấp/Trễ - 🟠 Cam: Còn hạn - 🔵 Xanh: Hôm nay")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -533,7 +539,7 @@ if st.session_state.role == "Admin":
                 with c_f2: 
                     f_d = st.date_input("Hạn chót", value=datetime.date.today())
                 with c_f3: 
-                    f_tt = st.selectbox("Trạng thái", ["Chưa xử lý", "Đang thực hiện", "Hoàn thành"])
+                    f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
                 
                 if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
                     if f_ten:
@@ -551,19 +557,18 @@ if st.session_state.role == "Admin":
                                 new_data.append({
                                     "_ID": max_id, "TEN_BAO_CAO": f_ten, 
                                     "KY_BAO_CAO": k, "DEADLINE": d_val, 
-                                    "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                                    "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
                                 })
                         else:
                             max_id += 1
                             new_data.append({
                                 "_ID": max_id, "TEN_BAO_CAO": f_ten, 
                                 "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
-                                "TRANG_THAI_GOC": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                                "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
                             })
 
                         n_df = pd.DataFrame(new_data)
-                        n_df['THANG'] = n_df['DEADLINE'].dt.month.fillna(0).astype(int)
-                        n_df['CANH_BAO'] = n_df.apply(phan_loai, axis=1)
+                        n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
                         st.session_state.df_master = pd.concat(
                             [st.session_state.df_master, n_df], 
                             ignore_index=True
