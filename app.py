@@ -189,7 +189,7 @@ if st.session_state.system_auth and not st.session_state.logged_in:
 # ==========================================
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
-df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
+conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
 def phan_loai(row):
