@@ -125,7 +125,6 @@ css_code_work = """
         table { font-size: 11px !important; }
     }
     @media screen and (max-width: 430px) {
-        /* CSS Chuyên biệt cho iPhone 15 Pro Max (dọc) */
         .codx-title { font-size: 16px !important; }
         .stTabs [data-baseweb="tab"] { padding: 6px 10px; font-size: 11px; }
         .clock-container { font-size: 11px !important; padding: 4px 10px !important; }
@@ -248,14 +247,14 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp(get_vn_time().date())
 
-# KHẮC PHỤC LỖI NHẢY TRẠNG THÁI: KHÓA CỨNG "ĐÃ HOÀN THÀNH"
+# KHẮC PHỤC LỖI 2: Lệnh NIÊM PHONG TUYỆT ĐỐI Trạng Thái
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip()
     
-    # BỘ LỌC TIẾNG VIỆT CHUẨN XÁC: Loại bỏ dấu để nhận diện 100% không trượt
+    # 1. Ép chuẩn bảng mã unicode loại bỏ dấu tiếng Việt để so sánh an toàn 100%
     tt_norm = unicodedata.normalize('NFKD', tt.lower()).encode('ascii', 'ignore').decode('ascii')
     
-    # 1. NIÊM PHONG VĨNH VIỄN: Nếu nhận diện có Hoàn thành (từ file gốc hoặc thao tác Admin)
+    # CHỐT CHẶN: Hễ phát hiện dấu hiệu Hoàn Thành là khóa chết, tuyệt đối KHÔNG tính ngày nữa
     if "hoan thanh" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
         return "🟢 Đã hoàn thành"
         
@@ -263,7 +262,7 @@ def phan_loai(row):
     if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT or row.get('DEADLINE') is None:
         return tt if ("⏳" in tt or "🔴" in tt) else "⏳ Đang thực hiện"
         
-    # 3. Chỉ tính toán Trễ hạn/Gấp đối với các công việc CHƯA hoàn thành
+    # 3. Chỉ tự động tính Trễ hạn/Gấp đối với các công việc CHƯA hoàn thành
     try:
         days_diff = (row['DEADLINE'] - today).days
         if days_diff < 0: return "🔴 Trễ hạn"
@@ -273,14 +272,13 @@ def phan_loai(row):
         
     return "⏳ Đang thực hiện"
 
-def get_col(df, keywords, fallback_idx):
+# Lệnh dò tìm cột siêu mạnh, khắc phục tình trạng Google Sheet xô lệch cột
+def safe_get_col(df, possible_names):
     for col in df.columns:
-        c_str = str(col).lower()
-        c_norm = unicodedata.normalize('NFKD', c_str).encode('ascii', 'ignore').decode('ascii')
-        for kw in keywords:
-            if kw in c_str or kw in c_norm:
+        c_norm = unicodedata.normalize('NFKD', str(col).lower()).encode('ascii', 'ignore').decode('ascii')
+        for name in possible_names:
+            if name in c_norm:
                 return col
-    if fallback_idx < len(df.columns): return df.columns[fallback_idx]
     return None
 
 def style_status(val):
@@ -297,38 +295,36 @@ def load_data():
     try:
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         
-        cols_check = " ".join([str(c).lower() for c in df_raw.columns])
-        if "tình trạng" in cols_check or "hạn chót" in cols_check or "deadline" in cols_check:
-            df_raw.columns = [str(c).strip() for c in df_raw.columns]
+        # Nhận diện chính xác tuyệt đối dòng chứa Header
+        header_idx = -1
+        for i, row in df_raw.head(15).iterrows():
+            row_str = " ".join([str(val) for val in row]).lower()
+            if ("hạn chót" in row_str or "deadline" in row_str) and ("tình trạng" in row_str or "trạng thái" in row_str):
+                header_idx = i
+                break
+                
+        if header_idx != -1:
+            df_raw.columns = [str(c).strip() for c in df_raw.iloc[header_idx]]
+            df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
         else:
-            header_idx = -1
-            for i, row in df_raw.head(10).iterrows():
-                row_str = " ".join([str(val) for val in row]).lower()
-                if ("hạn chót" in row_str or "deadline" in row_str) and ("tình trạng" in row_str or "trạng thái" in row_str):
-                    header_idx = i
-                    break
-            
-            if header_idx != -1:
-                df_raw.columns = [str(c).strip() for c in df_raw.iloc[header_idx]]
-                df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
-            else:
-                df_raw.columns = [str(c).strip() for c in df_raw.columns]
+            df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
-        col_ten = get_col(df_raw, ["ten", "cong viec", "công", "báo cáo", "nội dung", "noi dung"], 1)
-        col_ky = get_col(df_raw, ["ky", "kỳ", "thang", "tháng", "quy", "quý"], 2)
-        col_han = get_col(df_raw, ["han", "deadline", "chot", "chót", "thoi gian", "ngày"], 3)
-        col_tt = get_col(df_raw, ["tinh trang", "trang thai", "tt", "trạng", "tien do", "tiến độ", "ket qua", "kết quả", "hoàn thành"], 4)
-        col_dv = get_col(df_raw, ["don vi", "yeu cau", "đơn", "phòng", "ban"], 5)
-        col_lv = get_col(df_raw, ["linh vuc", "lĩnh", "vuc", "mảng", "loại"], 6)
+        # Đích danh lấy cột chuẩn để không bao giờ bị lệch dữ liệu
+        col_ten = safe_get_col(df_raw, ["ten cong viec", "ten bao cao", "noi dung"]) or (df_raw.columns[1] if len(df_raw.columns) > 1 else None)
+        col_ky = safe_get_col(df_raw, ["ky bao cao", "thang", "quy"]) or (df_raw.columns[2] if len(df_raw.columns) > 2 else None)
+        col_han = safe_get_col(df_raw, ["han chot", "deadline"]) or (df_raw.columns[3] if len(df_raw.columns) > 3 else None)
+        col_tt = safe_get_col(df_raw, ["tinh trang", "trang thai", "tien do"]) or (df_raw.columns[4] if len(df_raw.columns) > 4 else None)
+        col_dv = safe_get_col(df_raw, ["don vi", "yeu cau"]) or (df_raw.columns[5] if len(df_raw.columns) > 5 else None)
+        col_lv = safe_get_col(df_raw, ["linh vuc"]) or (df_raw.columns[6] if len(df_raw.columns) > 6 else None)
 
-        extracted = {
-            "TEN_BAO_CAO": df_raw[col_ten] if col_ten else pd.Series([""]*len(df_raw)),
-            "KY_BAO_CAO": df_raw[col_ky] if col_ky else pd.Series([""]*len(df_raw)),
-            "DEADLINE": df_raw[col_han] if col_han else pd.Series([""]*len(df_raw)),
-            "TINH_TRANG": df_raw[col_tt] if col_tt else pd.Series([""]*len(df_raw)),
-            "DON_VI_YEU_CAU": df_raw[col_dv] if col_dv else pd.Series([""]*len(df_raw)),
-            "LINH_VUC": df_raw[col_lv] if col_lv else pd.Series([""]*len(df_raw))
-        }
+        extracted = {}
+        extracted["TEN_BAO_CAO"] = df_raw[col_ten] if col_ten is not None else pd.Series([""]*len(df_raw))
+        extracted["KY_BAO_CAO"] = df_raw[col_ky] if col_ky is not None else pd.Series([""]*len(df_raw))
+        extracted["DEADLINE"] = df_raw[col_han] if col_han is not None else pd.Series([""]*len(df_raw))
+        extracted["TINH_TRANG"] = df_raw[col_tt] if col_tt is not None else pd.Series([""]*len(df_raw))
+        extracted["DON_VI_YEU_CAU"] = df_raw[col_dv] if col_dv is not None else pd.Series([""]*len(df_raw))
+        extracted["LINH_VUC"] = df_raw[col_lv] if col_lv is not None else pd.Series([""]*len(df_raw))
+        
         df = pd.DataFrame(extracted)
         
         df = df.dropna(subset=['TEN_BAO_CAO'])
@@ -339,6 +335,7 @@ def load_data():
         df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
+        # Ép khóa chặn trạng thái ngay khi kéo dữ liệu về
         df['TINH_TRANG'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
@@ -406,6 +403,8 @@ with st.sidebar:
     
     st.divider()
     if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
+        # Buộc xóa cache và tải lại dữ liệu cứng
+        st.cache_data.clear()
         st.session_state.df_master = load_data()
         st.rerun()
 
@@ -475,7 +474,7 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # KHẮC PHỤC LỖI CLICK TIÊU ĐỀ: Loại bỏ NaT thành None để tương thích hoàn toàn PyArrow
+    # KHẮC PHỤC LỖI 1: Ép Dataframe thuần túy nhất để mở khóa chức năng Click Tiêu Đề của Streamlit
     df_interact = df_filtered.copy()
     df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
     df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
@@ -483,12 +482,15 @@ with col_main:
     df_interact['DON_VI_YEU_CAU'] = df_interact['DON_VI_YEU_CAU'].astype(str)
     df_interact['LINH_VUC'] = df_interact['LINH_VUC'].astype(str)
     df_interact['_ID'] = df_interact['_ID'].astype(int)
-    df_interact['DEADLINE'] = df_interact['DEADLINE'].replace({pd.NaT: None})
+    
+    # Loại bỏ lỗi NaT Mixed-Type cực kỳ nghiêm ngặt của PyArrow
+    df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
+    df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].notnull(), None)
 
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
     
     with tab_interact:
-        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. Kéo rộng mép cột để xem nhiều chữ.")
+        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. Kéo rộng mép cột để xem được nhiều chữ hơn.")
         
         if st.session_state.role == "Admin":
             st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
@@ -505,7 +507,6 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
-            # Loại bỏ Dynamic rows để mở khóa 100% chức năng Click Sắp Xếp của Streamlit
             edited_df = st.data_editor(
                 df_interact,
                 key=st.session_state.editor_key,
@@ -536,7 +537,7 @@ with col_main:
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
                             
-                            # Nếu Admin thay đổi Tình trạng, hệ thống KHÔNG TỰ ĐỘNG CHẠY HÀM NGÀY THÁNG ĐÈ LÊN, MÀ TÔN TRỌNG LỰA CHỌN CỦA ADMIN
+                            # Nếu Admin sửa Tình trạng, thì KHÔNG chạy auto tính toán đè lên.
                             if "TINH_TRANG" not in changes:
                                 updated_row = st.session_state.df_master.loc[m_idx]
                                 st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
@@ -552,7 +553,6 @@ with col_main:
                     
                     df_to_save['DEADLINE'] = pd.to_datetime(df_to_save['DEADLINE']).dt.strftime('%d/%m/%Y').fillna('')
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
-                    
                     df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
                     
                     conn.update(worksheet="Data", data=df_to_save)
