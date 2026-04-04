@@ -4,7 +4,6 @@ import uuid
 import pandas as pd
 import datetime
 import plotly.express as px
-import unicodedata
 import os
 import calendar
 import time
@@ -16,7 +15,7 @@ from streamlit_gsheets import GSheetsConnection
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
-    page_title="Hệ thống Quản trị - CAP An Khánh", 
+    page_title="Hệ thống Quản trị Báo cáo - CAP An Khánh", 
     page_icon="☑️", 
     layout="wide"
 )
@@ -224,22 +223,27 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
-# FIX VẤN ĐỀ 1: Khóa cứng logic để "Hoàn thành" tuyệt đối không bao giờ bị nhảy lại
+# FIX TỐI ƯU TRIỆT ĐỂ LỖI TRẠNG THÁI:
+# Sử dụng kiểm tra chuỗi cực mạnh, khoá cứng trạng thái ngay lập tức khi phát hiện từ khoá
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip().lower()
     
-    # Bỏ dấu tiếng Việt để so sánh an toàn 100%
-    tt_no_tone = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
-    
-    if "hoan thanh" in tt_no_tone or "hoàn thành" in tt:
+    # 1. Nếu hệ thống hoặc người dùng đã đánh dấu có chứa các từ khóa này, 100% là Hoàn thành
+    if "hoàn thành" in tt or "hoan thanh" in tt or "xong" in tt or "🟢" in tt:
         return "🟢 Đã hoàn thành"
-
+        
+    # 2. Nếu chưa điền hạn chót
     if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT:
         return "⏳ Đang thực hiện"
-
-    days_diff = (row['DEADLINE'] - today).days
-    if days_diff < 0: return "🔴 Trễ hạn"
-    if 0 <= days_diff <= 5: return "🔴 Cần thực hiện ngay"
+        
+    # 3. Quét kiểm tra ngày tháng
+    try:
+        days_diff = (row['DEADLINE'] - today).days
+        if days_diff < 0: return "🔴 Trễ hạn"
+        if 0 <= days_diff <= 5: return "🔴 Cần thực hiện ngay"
+    except:
+        pass
+        
     return "⏳ Đang thực hiện"
 
 def get_col(df, keywords, fallback_idx):
@@ -458,7 +462,6 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
-            # FIX VẤN ĐỀ 2: Xử lý 1-click update lập tức thông qua Session State Callbacks
             edited_df = st.data_editor(
                 styled_editor_df,
                 key=st.session_state.editor_key,
@@ -466,6 +469,7 @@ with col_main:
                 column_config=c_cols
             )
 
+            # CƠ CHẾ CẬP NHẬT 1-CLICK: Nhanh nhạy & Ổn định
             editor_state = st.session_state.get(st.session_state.editor_key, {})
             has_changes = False
 
@@ -476,8 +480,8 @@ with col_main:
                 has_changes = True
 
             if editor_state.get("added_rows"):
-                new_data = []
                 max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                new_data = []
                 for row_add in editor_state["added_rows"]:
                     max_id += 1
                     row_dict = {
@@ -489,10 +493,11 @@ with col_main:
                         "DON_VI_YEU_CAU": row_add.get("DON_VI_YEU_CAU", "Không xác định"),
                         "LINH_VUC": row_add.get("LINH_VUC", "Không xác định")
                     }
+                    row_dict["TINH_TRANG"] = phan_loai(row_dict)
                     new_data.append(row_dict)
+                    
                 if new_data:
                     n_df = pd.DataFrame(new_data)
-                    n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
                     st.session_state.df_master = pd.concat([st.session_state.df_master, n_df], ignore_index=True)
                 has_changes = True
 
@@ -509,13 +514,12 @@ with col_main:
                             for col, val in changes.items():
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
-                            # Chốt cứng trạng thái ngay sau khi sửa
+                            # Đảm bảo Tình trạng vừa chọn được "khoá cứng"
                             updated_row = st.session_state.df_master.loc[m_idx]
                             st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
                 has_changes = True
 
             if has_changes:
-                # Ép tải lại lập tức chỉ với 1 click, dọn dẹp state thừa
                 st.session_state.editor_key = str(uuid.uuid4())
                 st.rerun()
 
@@ -525,7 +529,10 @@ with col_main:
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                     conn.update(worksheet="Data", data=df_to_save)
                     st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
-                    st.session_state.df_master = load_data()
+                    
+                    # QUAN TRỌNG: Chỉ xoá cache, tuyệt đối không kéo load_data() ngay lúc này để tránh kéo phải dữ liệu trễ từ Google 
+                    st.cache_data.clear()
+                    time.sleep(1)
                     st.rerun()
                 except Exception as e:
                     st.error(f"🚨 LỖI LƯU CLOUD: {e}")
