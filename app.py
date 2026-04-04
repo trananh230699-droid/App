@@ -125,7 +125,6 @@ if not st.session_state.system_auth:
     col_space1, col_left, col_space2, col_right, col_space3 = st.columns([0.5, 3.5, 0.5, 3.5, 0.5])
     
     with col_left:
-        # Khối Logo & Logs bên trái
         col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
         with col_logo2:
             if os.path.exists("logo.png"): st.image("logo.png", use_container_width=True)
@@ -146,7 +145,6 @@ if not st.session_state.system_auth:
         with st.form("system_auth_form"):
             st.markdown("<h3 style='color:#333; text-align:center; margin-bottom:20px; font-weight:bold;'>ĐĂNG NHẬP</h3>", unsafe_allow_html=True)
             
-            # Bắt buộc admin / CY
             sys_user = st.text_input("👤 Tên tài khoản hoặc email", placeholder="Nhập tên tài khoản...")
             sys_pwd = st.text_input("🔒 Mật khẩu", type="password", placeholder="Nhập mật khẩu truy cập...")
             submit_auth = st.form_submit_button("ĐĂNG NHẬP")
@@ -171,7 +169,6 @@ if not st.session_state.system_auth:
                     time.sleep(0.8)
                     
                     st.session_state.system_auth = True
-                    # Xoá phiên bản cũ để bắt hệ thống kéo dữ liệu mới lúc vừa đăng nhập
                     if 'df_master' in st.session_state:
                         del st.session_state['df_master']
                     loader.empty()
@@ -227,13 +224,19 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
+# FIX VẤN ĐỀ 1: Khóa cứng logic để "Hoàn thành" tuyệt đối không bao giờ bị nhảy lại
 def phan_loai(row):
-    tt = str(row.get('TINH_TRANG', '')).upper()
-    tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
+    tt = str(row.get('TINH_TRANG', '')).strip().lower()
     
-    if "HOAN THANH" in tt_norm: return "🟢 Đã hoàn thành"
-    if pd.isna(row['DEADLINE']): return "⏳ Đang thực hiện"
-        
+    # Bỏ dấu tiếng Việt để so sánh an toàn 100%
+    tt_no_tone = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
+    
+    if "hoan thanh" in tt_no_tone or "hoàn thành" in tt:
+        return "🟢 Đã hoàn thành"
+
+    if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT:
+        return "⏳ Đang thực hiện"
+
     days_diff = (row['DEADLINE'] - today).days
     if days_diff < 0: return "🔴 Trễ hạn"
     if 0 <= days_diff <= 5: return "🔴 Cần thực hiện ngay"
@@ -256,10 +259,8 @@ def style_status(val):
         return 'background-color: #b71c1c; color: white;'
     return ''
 
-# Loại bỏ tính năng CACHE hoàn toàn để giải quyết việc bị lưu dữ liệu cũ
 def load_data():
     try:
-        # Bắt buộc ttl=0 để bỏ qua bộ đệm của st.connection (Ép kéo dữ liệu gốc mới tinh 100%)
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         
         header_idx = -1
@@ -367,7 +368,7 @@ with st.sidebar:
     
     st.divider()
     if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
-        st.session_state.df_master = load_data() # Gọi mới dữ liệu và đã bỏ qua cache hoàn toàn
+        st.session_state.df_master = load_data()
         st.rerun()
 
 def chk_ky(row_ky):
@@ -436,9 +437,6 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # ----------------------------------------------------
-    # TẠO TABS ĐỂ ĐÁP ỨNG CẢ 2 NHU CẦU: NHẤP TIÊU ĐỀ & WRAP TEXT
-    # ----------------------------------------------------
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
     
     with tab_interact:
@@ -460,6 +458,7 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
+            # FIX VẤN ĐỀ 2: Xử lý 1-click update lập tức thông qua Session State Callbacks
             edited_df = st.data_editor(
                 styled_editor_df,
                 key=st.session_state.editor_key,
@@ -467,20 +466,58 @@ with col_main:
                 column_config=c_cols
             )
 
-            del_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
-            if del_ids:
-                st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(del_ids)]
-                st.rerun() 
-                
-            edited_df = edited_df[edited_df["🗑️ Xóa"] == False]
-            for _, row in edited_df.iterrows():
-                m_idx = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row['_ID']].tolist()[0]
-                st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
-                st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
-                st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
-                st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(row)
-                st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
-                st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
+            editor_state = st.session_state.get(st.session_state.editor_key, {})
+            has_changes = False
+
+            if editor_state.get("deleted_rows"):
+                for idx in sorted(editor_state["deleted_rows"], reverse=True):
+                    row_id = df_filtered.iloc[idx]['_ID']
+                    st.session_state.df_master = st.session_state.df_master[st.session_state.df_master['_ID'] != row_id]
+                has_changes = True
+
+            if editor_state.get("added_rows"):
+                new_data = []
+                max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                for row_add in editor_state["added_rows"]:
+                    max_id += 1
+                    row_dict = {
+                        "_ID": max_id,
+                        "TEN_BAO_CAO": row_add.get("TEN_BAO_CAO", "Chưa có tên"),
+                        "KY_BAO_CAO": row_add.get("KY_BAO_CAO", "Không xác định"),
+                        "DEADLINE": pd.to_datetime(row_add.get("DEADLINE", today)),
+                        "TINH_TRANG": row_add.get("TINH_TRANG", "⏳ Đang thực hiện"),
+                        "DON_VI_YEU_CAU": row_add.get("DON_VI_YEU_CAU", "Không xác định"),
+                        "LINH_VUC": row_add.get("LINH_VUC", "Không xác định")
+                    }
+                    new_data.append(row_dict)
+                if new_data:
+                    n_df = pd.DataFrame(new_data)
+                    n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
+                    st.session_state.df_master = pd.concat([st.session_state.df_master, n_df], ignore_index=True)
+                has_changes = True
+
+            if editor_state.get("edited_rows"):
+                for idx_str, changes in editor_state["edited_rows"].items():
+                    idx = int(idx_str)
+                    row_id = df_filtered.iloc[idx]['_ID']
+                    matching_indices = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row_id].tolist()
+                    if matching_indices:
+                        m_idx = matching_indices[0]
+                        if changes.get("🗑️ Xóa") == True:
+                            st.session_state.df_master = st.session_state.df_master.drop(m_idx)
+                        else:
+                            for col, val in changes.items():
+                                if col != "🗑️ Xóa":
+                                    st.session_state.df_master.at[m_idx, col] = val
+                            # Chốt cứng trạng thái ngay sau khi sửa
+                            updated_row = st.session_state.df_master.loc[m_idx]
+                            st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
+                has_changes = True
+
+            if has_changes:
+                # Ép tải lại lập tức chỉ với 1 click, dọn dẹp state thừa
+                st.session_state.editor_key = str(uuid.uuid4())
+                st.rerun()
 
             if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
                 try:
@@ -488,7 +525,6 @@ with col_main:
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                     conn.update(worksheet="Data", data=df_to_save)
                     st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
-                    # Load data mới tinh ngay sau khi lưu
                     st.session_state.df_master = load_data()
                     st.rerun()
                 except Exception as e:
@@ -543,7 +579,6 @@ with col_sub:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; font-weight:bold;'>📅 LỊCH NHẮC VIỆC THÁNG NÀY</p>", unsafe_allow_html=True)
     
-    # ĐỒNG HỒ JAVASCRIPT THỜI GIAN THỰC (TICK TỪNG GIÂY THEO MÚI GIỜ VN)
     html_clock = """
     <!DOCTYPE html>
     <html>
@@ -589,7 +624,6 @@ with col_sub:
     html_cal = '<table style="width:100%; border-collapse: collapse; font-size:13px; text-align:center;">'
     html_cal += '<tr><th style="color:#ff3333">CN</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th></tr>'
     
-    # Điều chỉnh CSS cho ngày hôm nay: Nền xanh, viền xanh đậm rõ ràng, chữ trắng.
     c_today_urgent = 'background:#EF4444; border: 3px solid #005B9F; color:white; border-radius:50%; width:28px; height:28px; line-height:22px; margin:auto; font-weight:bold; box-sizing:border-box; box-shadow: 0 0 8px rgba(0,91,159,0.5);'
     c_today = 'background:#0078D7; border: 3px solid #003366; color:white; border-radius:50%; width:28px; height:28px; line-height:22px; margin:auto; font-weight:bold; box-sizing:border-box; box-shadow: 0 0 8px rgba(0,120,215,0.7);'
     c_urgent = 'background:#EF4444; color:white; border-radius:50%; width:24px; height:24px; line-height:24px; margin:auto; font-weight:bold;'
@@ -638,9 +672,7 @@ if st.session_state.role == "Admin":
                 
                 c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
                 with c_f1: 
-                    # Dropdown cho các kỳ báo cáo có sẵn
                     f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
-                    # Ô nhập tay cho các kỳ báo cáo không có trong danh sách
                     f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
                     
                 with c_f2: 
@@ -655,7 +687,6 @@ if st.session_state.role == "Admin":
                         dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
                         lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
 
-                        # Gộp cả danh sách chọn và kỳ nhập tay
                         final_k = list(f_k)
                         if f_k_custom.strip():
                             final_k.append(f_k_custom.strip())
