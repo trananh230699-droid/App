@@ -101,6 +101,11 @@ css_code_work = """
     .stTable table { width: 100% !important; border-collapse: collapse; }
     .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; }
     .stTable th { background-color: #f8f9fa; font-weight: bold; }
+    
+    /* Chỉnh sửa thẩm mỹ cho Tabs */
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { background-color: #EAECEF; border-radius: 5px 5px 0 0; padding: 10px 20px; font-weight: bold;}
+    .stTabs [aria-selected="true"] { background-color: #0078D7; color: white !important; }
     </style>
 """
 
@@ -140,7 +145,7 @@ if not st.session_state.system_auth:
         with st.form("system_auth_form"):
             st.markdown("<h3 style='color:#333; text-align:center; margin-bottom:20px; font-weight:bold;'>ĐĂNG NHẬP</h3>", unsafe_allow_html=True)
             
-            # Form bắt buộc nhập đúng 'admin' và 'CY'
+            # Bắt buộc admin / CY
             sys_user = st.text_input("👤 Tên tài khoản hoặc email", placeholder="Nhập tên tài khoản...")
             sys_pwd = st.text_input("🔒 Mật khẩu", type="password", placeholder="Nhập mật khẩu truy cập...")
             submit_auth = st.form_submit_button("ĐĂNG NHẬP")
@@ -247,10 +252,10 @@ def style_status(val):
         return 'background-color: #b71c1c; color: white;'
     return ''
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=10) # Cập nhật dữ liệu từ Sheets mỗi 10 giây
 def load_data():
     try:
-        df_raw = conn.read(spreadsheet=SPREADSHEET_URL)
+        df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=10)
         
         header_idx = -1
         for i, row in df_raw.head(10).iterrows():
@@ -377,7 +382,6 @@ df_filtered = st.session_state.df_master[mask].copy()
 # ==========================================
 # CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT)
 # ==========================================
-# Bảng này chuyên dùng để bẻ dòng hiển thị như Excel
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
 if pd.api.types.is_datetime64_any_dtype(df_display['DEADLINE']):
     df_display['DEADLINE'] = df_display['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
@@ -398,7 +402,7 @@ with col_main:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
     
-    st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A)")
+    st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A) BỘ DỮ LIỆU GỐC")
     c_s1, c_s2 = st.columns([1.5, 2])
     
     sort_opts = [
@@ -428,64 +432,79 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    if st.session_state.role == "Admin":
-        st.info("💡 **KHU VỰC THAO TÁC (ADMIN):** Bảng đồ hoạ dưới đây hỗ trợ trực tiếp sửa, tick chọn Xóa hoặc đánh dấu hoàn thành. Kéo xuống cuối phần này để xem bảng TỰ BẺ DÒNG như Excel.")
+    # ----------------------------------------------------
+    # TẠO TABS ĐỂ ĐÁP ỨNG CẢ 2 NHU CẦU: NHẤP TIÊU ĐỀ & WRAP TEXT
+    # ----------------------------------------------------
+    tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
+    
+    with tab_interact:
+        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp. Kéo rộng mép cột để xem được nhiều chữ hơn.")
         
-        styled_editor_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
-        df_filtered.insert(0, "🗑️ Xóa", False)
+        if st.session_state.role == "Admin":
+            st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
+            styled_editor_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
+            df_filtered.insert(0, "🗑️ Xóa", False)
 
-        c_cols = {
-            "_ID": None, 
-            "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
-            "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-            "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
-            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
-        }
+            c_cols = {
+                "_ID": None, 
+                "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
+                "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
+                "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
+                "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+                "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
+                "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
+                "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+            }
 
-        edited_df = st.data_editor(
-            styled_editor_df,
-            key=st.session_state.editor_key,
-            use_container_width=True, hide_index=True, num_rows="dynamic",
-            column_config=c_cols
-        )
+            edited_df = st.data_editor(
+                styled_editor_df,
+                key=st.session_state.editor_key,
+                use_container_width=True, hide_index=True, num_rows="dynamic",
+                column_config=c_cols
+            )
 
-        del_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
-        if del_ids:
-            st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(del_ids)]
-            st.rerun() 
-            
-        edited_df = edited_df[edited_df["🗑️ Xóa"] == False]
-        for _, row in edited_df.iterrows():
-            m_idx = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row['_ID']].tolist()[0]
-            st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
-            st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
-            st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
-            st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(row)
-            st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
-            st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
-
-        if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
-            try:
-                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
-                df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
-                conn.update(worksheet="Data", data=df_to_save)
-                st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
-                st.cache_data.clear()
-                st.session_state.df_master = load_data()
-                st.rerun()
-            except Exception as e:
-                st.error(f"🚨 LỖI LƯU CLOUD: {e}")
+            del_ids = edited_df[edited_df["🗑️ Xóa"] == True]["_ID"].tolist()
+            if del_ids:
+                st.session_state.df_master = st.session_state.df_master[~st.session_state.df_master["_ID"].isin(del_ids)]
+                st.rerun() 
                 
-        # Hiển thị bảng wrap text dưới khu vực chỉnh sửa cho Admin
-        st.markdown("<hr style='margin-top:40px; margin-bottom:20px; border-color:#ccc;'>", unsafe_allow_html=True)
-        st.markdown("<h5 style='color:#005B9F;'>👁️ BẢNG XEM TRƯỚC (HIỂN THỊ WARP TEXT)</h5>", unsafe_allow_html=True)
-        st.table(styled_display)
-        
-    else:
-        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only). Hệ thống tự động bẻ dòng như Excel để tiện theo dõi.")
+            edited_df = edited_df[edited_df["🗑️ Xóa"] == False]
+            for _, row in edited_df.iterrows():
+                m_idx = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row['_ID']].tolist()[0]
+                st.session_state.df_master.at[m_idx, 'TEN_BAO_CAO'] = row['TEN_BAO_CAO']
+                st.session_state.df_master.at[m_idx, 'KY_BAO_CAO'] = row['KY_BAO_CAO']
+                st.session_state.df_master.at[m_idx, 'DEADLINE'] = row['DEADLINE']
+                st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(row)
+                st.session_state.df_master.at[m_idx, 'DON_VI_YEU_CAU'] = row['DON_VI_YEU_CAU']
+                st.session_state.df_master.at[m_idx, 'LINH_VUC'] = row['LINH_VUC']
+
+            if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
+                try:
+                    df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+                    df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
+                    conn.update(worksheet="Data", data=df_to_save)
+                    st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
+                    st.cache_data.clear()
+                    st.session_state.df_master = load_data()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"🚨 LỖI LƯU CLOUD: {e}")
+        else:
+            g_cols = {
+                "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
+                "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
+                "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+                "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width="medium"),
+                "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
+                "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+            }
+            st.dataframe(
+                df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].style.map(style_status, subset=['TINH_TRANG']),
+                use_container_width=True, hide_index=True, column_config=g_cols
+            )
+
+    with tab_wrap:
+        st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng xuống hàng giống y hệt Excel để tiện việc theo dõi báo cáo dài, tuy nhiên bảng này không cho phép nhấn tiêu đề để sắp xếp.")
         st.table(styled_display)
         
     st.markdown('</div>', unsafe_allow_html=True)
