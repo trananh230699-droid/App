@@ -95,6 +95,12 @@ css_code_work = """
     .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
+    
+    /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML */
+    .stTable { background-color: white; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+    .stTable table { width: 100% !important; border-collapse: collapse; }
+    .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; }
+    .stTable th { background-color: #f8f9fa; font-weight: bold; }
     </style>
 """
 
@@ -106,7 +112,7 @@ else:
     st.markdown(css_code_work, unsafe_allow_html=True)
 
 # ==========================================
-# GIAI ĐOẠN 1: MÀN HÌNH NHẬP MÃ BẢO MẬT (THEO MẪU ẢNH)
+# GIAI ĐOẠN 1: MÀN HÌNH NHẬP MÃ BẢO MẬT
 # ==========================================
 if not st.session_state.system_auth:
     st.markdown("<div style='height: 10vh;'></div>", unsafe_allow_html=True)
@@ -133,13 +139,14 @@ if not st.session_state.system_auth:
         st.markdown("<div style='height: 2vh;'></div>", unsafe_allow_html=True)
         with st.form("system_auth_form"):
             st.markdown("<h3 style='color:#333; text-align:center; margin-bottom:20px; font-weight:bold;'>ĐĂNG NHẬP</h3>", unsafe_allow_html=True)
-            # Thêm trường User giả lập giống giao diện
+            
+            # Form bắt buộc nhập đúng 'admin' và 'CY'
             sys_user = st.text_input("👤 Tên tài khoản hoặc email", placeholder="Nhập tên tài khoản...")
-            sys_pwd = st.text_input("🔒 Mật khẩu", type="password", placeholder="Nhập mật khẩu truy cập (Mã CY)...")
+            sys_pwd = st.text_input("🔒 Mật khẩu", type="password", placeholder="Nhập mật khẩu truy cập...")
             submit_auth = st.form_submit_button("ĐĂNG NHẬP")
             
             if submit_auth:
-                if sys_pwd == "CY":
+                if sys_user == "admin" and sys_pwd == "CY":
                     add_log("SUCCESS")
                     loader = st.empty()
                     base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
@@ -162,14 +169,14 @@ if not st.session_state.system_auth:
                     st.rerun()
                 else:
                     add_log("FAILED")
-                    st.error("🚨 MẬT KHẨU KHÔNG CHÍNH XÁC!")
+                    st.error("🚨 TÀI KHOẢN HOẶC MẬT KHẨU KHÔNG CHÍNH XÁC. VUI LÒNG NHẬP LẠI!")
                     time.sleep(1)
                     st.rerun()
                     
     st.stop()
 
 # ==========================================
-# GIAI ĐOẠN 2: CHỌN QUYỀN ADMIN / GUEST (GIỮ NGUYÊN)
+# GIAI ĐOẠN 2: CHỌN QUYỀN ADMIN / GUEST 
 # ==========================================
 if st.session_state.system_auth and not st.session_state.logged_in:
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
@@ -323,7 +330,6 @@ with st.sidebar:
     k_list = st.session_state.df_master['KY_BAO_CAO'].unique().tolist()
     all_k = set([k for ky in k_list if isinstance(ky, str) for k in ky.split(", ")])
     
-    # Sắp xếp các kỳ báo cáo theo đúng thứ tự tùy chỉnh
     ordered_periods = [
         "Tháng 01", "Tháng 02", "Tháng 03", "Quý 1", 
         "Tháng 04", "Tháng 05", "6 Tháng", "Tháng 06", 
@@ -368,6 +374,19 @@ mask = (
 )
 df_filtered = st.session_state.df_master[mask].copy()
 
+# ==========================================
+# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT)
+# ==========================================
+# Bảng này chuyên dùng để bẻ dòng hiển thị như Excel
+df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+if pd.api.types.is_datetime64_any_dtype(df_display['DEADLINE']):
+    df_display['DEADLINE'] = df_display['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
+
+df_display.columns = ["Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu", "Lĩnh vực"]
+styled_display = df_display.style.map(style_status, subset=['Tình trạng']).set_properties(
+    subset=['Tên công việc'], **{'white-space': 'pre-wrap', 'min-width': '400px'}
+)
+
 # ------------------------------------------
 # HIỂN THỊ BẢNG VÀ CHỨC NĂNG SẮP XẾP A-Z
 # ------------------------------------------
@@ -409,13 +428,10 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # Ép thuộc tính CSS để cột Tên công việc (TEN_BAO_CAO) tự động bẻ dòng, hiển thị full text
-    styled_df = df_filtered.style.map(style_status, subset=['TINH_TRANG']).set_properties(
-        subset=['TEN_BAO_CAO'], **{'white-space': 'pre-wrap', 'word-wrap': 'break-word', 'text-align': 'left'}
-    )
-
     if st.session_state.role == "Admin":
-        st.info("💡 Bấm trực tiếp vào bảng để chọn hoàn thành, Sửa hoặc Xóa. Sau đó bấm **LƯU ĐỒNG BỘ LÊN CLOUD**.")
+        st.info("💡 **KHU VỰC THAO TÁC (ADMIN):** Bảng đồ hoạ dưới đây hỗ trợ trực tiếp sửa, tick chọn Xóa hoặc đánh dấu hoàn thành. Kéo xuống cuối phần này để xem bảng TỰ BẺ DÒNG như Excel.")
+        
+        styled_editor_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
         df_filtered.insert(0, "🗑️ Xóa", False)
 
         c_cols = {
@@ -430,7 +446,7 @@ with col_main:
         }
 
         edited_df = st.data_editor(
-            styled_df,
+            styled_editor_df,
             key=st.session_state.editor_key,
             use_container_width=True, hide_index=True, num_rows="dynamic",
             column_config=c_cols
@@ -462,16 +478,16 @@ with col_main:
                 st.rerun()
             except Exception as e:
                 st.error(f"🚨 LỖI LƯU CLOUD: {e}")
+                
+        # Hiển thị bảng wrap text dưới khu vực chỉnh sửa cho Admin
+        st.markdown("<hr style='margin-top:40px; margin-bottom:20px; border-color:#ccc;'>", unsafe_allow_html=True)
+        st.markdown("<h5 style='color:#005B9F;'>👁️ BẢNG XEM TRƯỚC (HIỂN THỊ WARP TEXT)</h5>", unsafe_allow_html=True)
+        st.table(styled_display)
+        
     else:
-        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only).")
-        st.dataframe(
-            styled_df,
-            use_container_width=True, hide_index=True,
-            column_config={
-                "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-                "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large")
-            }
-        )
+        st.info("👁️ **CHẾ ĐỘ XEM:** Đang xem với quyền Khách (Read-only). Hệ thống tự động bẻ dòng như Excel để tiện theo dõi.")
+        st.table(styled_display)
+        
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
