@@ -25,7 +25,6 @@ st.set_page_config(
 # ĐỒNG BỘ MÚI GIỜ VIỆT NAM (UTC+7)
 # ==========================================
 def get_vn_time():
-    # Ép toàn bộ hệ thống lấy giờ VN, khắc phục lỗi nhảy ngày trên máy chủ quốc tế
     return datetime.datetime.utcnow() + datetime.timedelta(hours=7)
 
 # ==========================================
@@ -123,8 +122,7 @@ css_code_work = """
         .stTabs [data-baseweb="tab"] { padding: 8px 12px; font-size: 12px; white-space: nowrap; }
         .codx-card { padding: 10px; }
         .stMetric { text-align: center; }
-        table { font-size: 12px !important; table-layout: fixed; width: 100%; }
-        td { padding: 2px !important; }
+        table { font-size: 11px !important; }
     }
     @media screen and (max-width: 430px) {
         /* CSS Chuyên biệt cho iPhone 15 Pro Max (dọc) */
@@ -248,15 +246,16 @@ if st.session_state.system_auth and not st.session_state.logged_in:
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2tqG7gHlLkQVfXVN-FpUdi8/edit" 
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-# Tự động lấy Date theo giờ Việt Nam
 today = pd.Timestamp(get_vn_time().date())
 
-# KHÓA CỨNG TRẠNG THÁI: Tuyệt đối không tự động thay đổi các ô Đã hoàn thành
+# KHẮC PHỤC LỖI NHẢY TRẠNG THÁI: KHÓA CỨNG "ĐÃ HOÀN THÀNH"
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip()
+    
+    # BỘ LỌC TIẾNG VIỆT CHUẨN XÁC: Loại bỏ dấu để nhận diện 100% không trượt
     tt_norm = unicodedata.normalize('NFKD', tt.lower()).encode('ascii', 'ignore').decode('ascii')
     
-    # 1. Niêm phong vĩnh viễn: Nếu nhận diện có Hoàn thành (từ file gốc hoặc thao tác Admin)
+    # 1. NIÊM PHONG VĨNH VIỄN: Nếu nhận diện có Hoàn thành (từ file gốc hoặc thao tác Admin)
     if "hoan thanh" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
         return "🟢 Đã hoàn thành"
         
@@ -264,7 +263,7 @@ def phan_loai(row):
     if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT or row.get('DEADLINE') is None:
         return tt if ("⏳" in tt or "🔴" in tt) else "⏳ Đang thực hiện"
         
-    # 3. Chỉ tính toán Trễ hạn/Gấp đối với các công việc chưa Hoàn thành
+    # 3. Chỉ tính toán Trễ hạn/Gấp đối với các công việc CHƯA hoàn thành
     try:
         days_diff = (row['DEADLINE'] - today).days
         if days_diff < 0: return "🔴 Trễ hạn"
@@ -298,7 +297,6 @@ def load_data():
     try:
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         
-        # BẮT ĐÍCH DANH CỘT ĐỂ KHÔNG BAO GIỜ NHẬN NHẦM HEADER
         cols_check = " ".join([str(c).lower() for c in df_raw.columns])
         if "tình trạng" in cols_check or "hạn chót" in cols_check or "deadline" in cols_check:
             df_raw.columns = [str(c).strip() for c in df_raw.columns]
@@ -306,7 +304,6 @@ def load_data():
             header_idx = -1
             for i, row in df_raw.head(10).iterrows():
                 row_str = " ".join([str(val) for val in row]).lower()
-                # Yêu cầu phải có cả "Hạn chót" VÀ "Tình trạng" để chốt chính xác đây là dòng Header
                 if ("hạn chót" in row_str or "deadline" in row_str) and ("tình trạng" in row_str or "trạng thái" in row_str):
                     header_idx = i
                     break
@@ -478,7 +475,7 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # Ép kiểu dữ liệu gốc để tắt lỗi Mixed Type của Arrow, mở khóa click tiêu đề
+    # KHẮC PHỤC LỖI CLICK TIÊU ĐỀ: Loại bỏ NaT thành None để tương thích hoàn toàn PyArrow
     df_interact = df_filtered.copy()
     df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
     df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
@@ -486,13 +483,12 @@ with col_main:
     df_interact['DON_VI_YEU_CAU'] = df_interact['DON_VI_YEU_CAU'].astype(str)
     df_interact['LINH_VUC'] = df_interact['LINH_VUC'].astype(str)
     df_interact['_ID'] = df_interact['_ID'].astype(int)
-    # Giữ nguyên `datetime64[ns]` nguyên thủy, giúp click sắp xếp chuẩn xác
-    df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
+    df_interact['DEADLINE'] = df_interact['DEADLINE'].replace({pd.NaT: None})
 
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
     
     with tab_interact:
-        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để tự động trượt lên/xuống. Kéo rộng mép cột để xem nhiều chữ.")
+        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. Kéo rộng mép cột để xem nhiều chữ.")
         
         if st.session_state.role == "Admin":
             st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
@@ -509,7 +505,7 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
-            # Tắt dynamic row để ko chặn hàm click sort tiêu đề gốc
+            # Loại bỏ Dynamic rows để mở khóa 100% chức năng Click Sắp Xếp của Streamlit
             edited_df = st.data_editor(
                 df_interact,
                 key=st.session_state.editor_key,
@@ -540,7 +536,7 @@ with col_main:
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
                             
-                            # Nếu Admin sửa Tình trạng, thì KHÔNG chạy auto tính toán đè lên.
+                            # Nếu Admin thay đổi Tình trạng, hệ thống KHÔNG TỰ ĐỘNG CHẠY HÀM NGÀY THÁNG ĐÈ LÊN, MÀ TÔN TRỌNG LỰA CHỌN CỦA ADMIN
                             if "TINH_TRANG" not in changes:
                                 updated_row = st.session_state.df_master.loc[m_idx]
                                 st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
@@ -554,7 +550,7 @@ with col_main:
                 try:
                     df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
                     
-                    df_to_save['DEADLINE'] = df_to_save['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
+                    df_to_save['DEADLINE'] = pd.to_datetime(df_to_save['DEADLINE']).dt.strftime('%d/%m/%Y').fillna('')
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                     
                     df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
