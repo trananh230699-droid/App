@@ -224,22 +224,20 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
-# FIX TỐI ƯU TRIỆT ĐỂ LỖI TRẠNG THÁI:
+# KHÓA CỨNG TRẠNG THÁI: Loại bỏ hoàn toàn sự can thiệp nếu đã hoàn thành
 def phan_loai(row):
-    tt = str(row.get('TINH_TRANG', '')).strip().lower()
+    tt = str(row.get('TINH_TRANG', '')).strip()
+    tt_norm = unicodedata.normalize('NFKD', tt.lower()).encode('ascii', 'ignore').decode('ascii')
     
-    # Ép chuẩn bảng mã unicode loại bỏ dấu tiếng Việt để so sánh an toàn tuyệt đối
-    tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
-    
-    # 1. Khóa cứng trạng thái hoàn thành:
-    if "hoan" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
+    # 1. TUYỆT ĐỐI NIÊM PHONG: Nếu admin chọn "Hoàn thành" hoặc GG Sheets có chữ "Hoàn thành"
+    if "hoan thanh" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
         return "🟢 Đã hoàn thành"
         
-    # 2. Nếu chưa điền hạn chót
+    # 2. Xử lý các trạng thái khác
     if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT:
-        return "⏳ Đang thực hiện"
+        return tt if ("⏳" in tt or "🔴" in tt) else "⏳ Đang thực hiện"
         
-    # 3. Quét kiểm tra ngày tháng
+    # 3. Chỉ tính toán ngày tháng đối với các công việc CHƯA hoàn thành
     try:
         days_diff = (row['DEADLINE'] - today).days
         if days_diff < 0: return "🔴 Trễ hạn"
@@ -251,8 +249,11 @@ def phan_loai(row):
 
 def get_col(df, keywords, fallback_idx):
     for col in df.columns:
-        if any(kw in str(col).lower() for kw in keywords):
-            return col
+        c_str = str(col).lower()
+        c_norm = unicodedata.normalize('NFKD', c_str).encode('ascii', 'ignore').decode('ascii')
+        for kw in keywords:
+            if kw in c_str or kw in c_norm:
+                return col
     if fallback_idx < len(df.columns): return df.columns[fallback_idx]
     return None
 
@@ -270,25 +271,31 @@ def load_data():
     try:
         df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         
-        header_idx = -1
-        for i, row in df_raw.head(10).iterrows():
-            row_str = " ".join([str(val) for val in row]).lower()
-            if "báo cáo" in row_str or "hạn chót" in row_str or "tình trạng" in row_str or "trạng thái" in row_str:
-                header_idx = i
-                break
-        
-        if header_idx != -1:
-            df_raw.columns = [str(c).strip() for c in df_raw.iloc[header_idx]]
-            df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
-        else:
+        # NGĂN CHẶN LỖI NHẬN NHẦM HEADER GÂY XÔ LỆCH DỮ LIỆU
+        cols_check = " ".join([str(c).lower() for c in df_raw.columns])
+        if "tình trạng" in cols_check or "hạn chót" in cols_check or "deadline" in cols_check:
             df_raw.columns = [str(c).strip() for c in df_raw.columns]
+        else:
+            header_idx = -1
+            for i, row in df_raw.head(10).iterrows():
+                row_str = " ".join([str(val) for val in row]).lower()
+                # Yêu cầu phải có cả "Hạn chót/Deadline" VÀ "Tình trạng" để loại bỏ 100% rủi ro bắt nhầm tên task
+                if ("hạn chót" in row_str or "deadline" in row_str) and ("tình trạng" in row_str or "trạng thái" in row_str):
+                    header_idx = i
+                    break
+            
+            if header_idx != -1:
+                df_raw.columns = [str(c).strip() for c in df_raw.iloc[header_idx]]
+                df_raw = df_raw.iloc[header_idx+1:].reset_index(drop=True)
+            else:
+                df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
-        col_ten = get_col(df_raw, ["tên", "ten", "công việc"], 1)
-        col_ky = get_col(df_raw, ["kỳ", "ky"], 2)
-        col_han = get_col(df_raw, ["hạn", "han", "deadline"], 3)
-        col_tt = get_col(df_raw, ["tình trạng", "tinh trang", "trạng", "trang", "tt"], 4)
-        col_dv = get_col(df_raw, ["đơn", "don", "yêu cầu"], 5)
-        col_lv = get_col(df_raw, ["lĩnh", "linh", "vực"], 6)
+        col_ten = get_col(df_raw, ["ten", "cong viec", "công", "báo cáo", "nội dung", "noi dung"], 1)
+        col_ky = get_col(df_raw, ["ky", "kỳ", "thang", "tháng", "quy", "quý"], 2)
+        col_han = get_col(df_raw, ["han", "deadline", "chot", "chót", "thoi gian", "ngày"], 3)
+        col_tt = get_col(df_raw, ["tinh trang", "trang thai", "tt", "trạng", "tien do", "tiến độ", "ket qua", "kết quả", "hoàn thành"], 4)
+        col_dv = get_col(df_raw, ["don vi", "yeu cau", "đơn", "phòng", "ban"], 5)
+        col_lv = get_col(df_raw, ["linh vuc", "lĩnh", "vuc", "mảng", "loại"], 6)
 
         extracted = {
             "TEN_BAO_CAO": df_raw[col_ten] if col_ten else pd.Series([""]*len(df_raw)),
@@ -444,9 +451,8 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # KHẮC PHỤC LỖI 1: Ép chuẩn DataFrame nguyên bản để cột có thể click sắp xếp (Không dùng Style map)
+    # Ép kiểu dữ liệu thời gian cho Streamlit Dataframe để tính năng click tiêu đề hoạt động
     df_interact = df_filtered.copy()
-    # Chuyển đổi timestamp thành kiểu Date thuần túy để JS của Streamlit không bị lỗi khi sắp xếp
     df_interact['DEADLINE'] = df_interact['DEADLINE'].apply(lambda x: x.date() if pd.notnull(x) else None)
 
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
@@ -469,7 +475,7 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
-            # TRUYỀN RAW DATAFRAME KHÔNG STYLE ĐỂ MỞ KHÓA CLICK SORTING
+            # Chạy trực tiếp dữ liệu thô, BỎ `style.map` để tính năng Sorting Title hoạt động
             edited_df = st.data_editor(
                 df_interact,
                 key=st.session_state.editor_key,
@@ -521,8 +527,12 @@ with col_main:
                             for col, val in changes.items():
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
-                            updated_row = st.session_state.df_master.loc[m_idx]
-                            st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
+                            
+                            # TÔN TRỌNG SỰ LỰA CHỌN CỦA ADMIN: 
+                            # Nếu Admin sửa trực tiếp cột Tình trạng, thì KHÔNG chạy auto tính toán đè lên.
+                            if "TINH_TRANG" not in changes:
+                                updated_row = st.session_state.df_master.loc[m_idx]
+                                st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
                 has_changes = True
 
             if has_changes:
@@ -533,11 +543,11 @@ with col_main:
                 try:
                     df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
                     
-                    # Chuẩn hóa format ngày tháng cứng trước khi lưu
+                    # Ép chuẩn định dạng ngày tháng để Google Sheets không làm ngược lại
                     df_to_save['DEADLINE'] = df_to_save['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                     
-                    # Ép tên cột thuần túy cho file gốc
+                    # Định dạng chuẩn tên cột, ngăn Google Sheets sinh file lỗi
                     df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
                     
                     conn.update(worksheet="Data", data=df_to_save)
