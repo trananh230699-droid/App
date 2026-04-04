@@ -4,6 +4,7 @@ import uuid
 import pandas as pd
 import datetime
 import plotly.express as px
+import unicodedata
 import os
 import calendar
 import time
@@ -224,12 +225,14 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp.today().normalize()
 
 # FIX TỐI ƯU TRIỆT ĐỂ LỖI TRẠNG THÁI:
-# Sử dụng kiểm tra chuỗi cực mạnh, khoá cứng trạng thái ngay lập tức khi phát hiện từ khoá
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip().lower()
     
-    # 1. Nếu hệ thống hoặc người dùng đã đánh dấu có chứa các từ khóa này, 100% là Hoàn thành
-    if "hoàn thành" in tt or "hoan thanh" in tt or "xong" in tt or "🟢" in tt:
+    # Ép chuẩn bảng mã unicode loại bỏ dấu tiếng Việt để so sánh an toàn tuyệt đối
+    tt_norm = unicodedata.normalize('NFKD', tt).encode('ascii', 'ignore').decode('ascii')
+    
+    # 1. Khóa cứng trạng thái hoàn thành:
+    if "hoan" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
         return "🟢 Đã hoàn thành"
         
     # 2. Nếu chưa điền hạn chót
@@ -441,6 +444,11 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
+    # KHẮC PHỤC LỖI 1: Ép chuẩn DataFrame nguyên bản để cột có thể click sắp xếp (Không dùng Style map)
+    df_interact = df_filtered.copy()
+    # Chuyển đổi timestamp thành kiểu Date thuần túy để JS của Streamlit không bị lỗi khi sắp xếp
+    df_interact['DEADLINE'] = df_interact['DEADLINE'].apply(lambda x: x.date() if pd.notnull(x) else None)
+
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
     
     with tab_interact:
@@ -448,8 +456,7 @@ with col_main:
         
         if st.session_state.role == "Admin":
             st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
-            styled_editor_df = df_filtered.style.map(style_status, subset=['TINH_TRANG'])
-            df_filtered.insert(0, "🗑️ Xóa", False)
+            df_interact.insert(0, "🗑️ Xóa", False)
 
             c_cols = {
                 "_ID": None, 
@@ -462,20 +469,20 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
 
+            # TRUYỀN RAW DATAFRAME KHÔNG STYLE ĐỂ MỞ KHÓA CLICK SORTING
             edited_df = st.data_editor(
-                styled_editor_df,
+                df_interact,
                 key=st.session_state.editor_key,
                 use_container_width=True, hide_index=True, num_rows="dynamic",
                 column_config=c_cols
             )
 
-            # CƠ CHẾ CẬP NHẬT 1-CLICK: Nhanh nhạy & Ổn định
             editor_state = st.session_state.get(st.session_state.editor_key, {})
             has_changes = False
 
             if editor_state.get("deleted_rows"):
                 for idx in sorted(editor_state["deleted_rows"], reverse=True):
-                    row_id = df_filtered.iloc[idx]['_ID']
+                    row_id = df_interact.iloc[idx]['_ID']
                     st.session_state.df_master = st.session_state.df_master[st.session_state.df_master['_ID'] != row_id]
                 has_changes = True
 
@@ -504,7 +511,7 @@ with col_main:
             if editor_state.get("edited_rows"):
                 for idx_str, changes in editor_state["edited_rows"].items():
                     idx = int(idx_str)
-                    row_id = df_filtered.iloc[idx]['_ID']
+                    row_id = df_interact.iloc[idx]['_ID']
                     matching_indices = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row_id].tolist()
                     if matching_indices:
                         m_idx = matching_indices[0]
@@ -514,7 +521,6 @@ with col_main:
                             for col, val in changes.items():
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
-                            # Đảm bảo Tình trạng vừa chọn được "khoá cứng"
                             updated_row = st.session_state.df_master.loc[m_idx]
                             st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
                 has_changes = True
@@ -526,11 +532,17 @@ with col_main:
             if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
                 try:
                     df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+                    
+                    # Chuẩn hóa format ngày tháng cứng trước khi lưu
+                    df_to_save['DEADLINE'] = df_to_save['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
+                    
+                    # Ép tên cột thuần túy cho file gốc
+                    df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
+                    
                     conn.update(worksheet="Data", data=df_to_save)
                     st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
                     
-                    # QUAN TRỌNG: Chỉ xoá cache, tuyệt đối không kéo load_data() ngay lúc này để tránh kéo phải dữ liệu trễ từ Google 
                     st.cache_data.clear()
                     time.sleep(1)
                     st.rerun()
@@ -546,7 +558,7 @@ with col_main:
                 "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
             }
             st.dataframe(
-                df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].style.map(style_status, subset=['TINH_TRANG']),
+                df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]],
                 use_container_width=True, hide_index=True, column_config=g_cols
             )
 
