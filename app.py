@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import uuid
 import pandas as pd
 import datetime
@@ -170,6 +171,9 @@ if not st.session_state.system_auth:
                     time.sleep(0.8)
                     
                     st.session_state.system_auth = True
+                    # Xoá phiên bản cũ để bắt hệ thống kéo dữ liệu mới lúc vừa đăng nhập
+                    if 'df_master' in st.session_state:
+                        del st.session_state['df_master']
                     loader.empty()
                     st.rerun()
                 else:
@@ -252,10 +256,11 @@ def style_status(val):
         return 'background-color: #b71c1c; color: white;'
     return ''
 
-@st.cache_data(ttl=10) # Cập nhật dữ liệu từ Sheets mỗi 10 giây
+# Loại bỏ tính năng CACHE hoàn toàn để giải quyết việc bị lưu dữ liệu cũ
 def load_data():
     try:
-        df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=10)
+        # Bắt buộc ttl=0 để bỏ qua bộ đệm của st.connection (Ép kéo dữ liệu gốc mới tinh 100%)
+        df_raw = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
         
         header_idx = -1
         for i, row in df_raw.head(10).iterrows():
@@ -362,8 +367,7 @@ with st.sidebar:
     
     st.divider()
     if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
-        st.cache_data.clear()
-        st.session_state.df_master = load_data() 
+        st.session_state.df_master = load_data() # Gọi mới dữ liệu và đã bỏ qua cache hoàn toàn
         st.rerun()
 
 def chk_ky(row_ky):
@@ -484,7 +488,7 @@ with col_main:
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
                     conn.update(worksheet="Data", data=df_to_save)
                     st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
-                    st.cache_data.clear()
+                    # Load data mới tinh ngay sau khi lưu
                     st.session_state.df_master = load_data()
                     st.rerun()
                 except Exception as e:
@@ -539,11 +543,40 @@ with col_sub:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; font-weight:bold;'>📅 LỊCH NHẮC VIỆC THÁNG NÀY</p>", unsafe_allow_html=True)
     
-    # Hiển thị ngày giờ hệ thống tự động
-    now_dt = datetime.datetime.now()
-    real_time_str = now_dt.strftime("%d/%m/%Y %H:%M:%S")
-    st.markdown(f"<div style='text-align:center; margin-bottom:12px;'><span style='background:#EAECEF; padding: 5px 15px; border-radius:15px; font-size:13px; font-weight:bold; color:#005B9F; border: 1px solid #ccc;'>🕒 {real_time_str}</span></div>", unsafe_allow_html=True)
+    # ĐỒNG HỒ JAVASCRIPT THỜI GIAN THỰC (TICK TỪNG GIÂY THEO MÚI GIỜ VN)
+    html_clock = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+        body { margin: 0; padding: 0; display: flex; justify-content: center; font-family: sans-serif; background-color: white;}
+        .clock-container { background:#EAECEF; padding: 5px 15px; border-radius:15px; font-size:13px; font-weight:bold; color:#005B9F; border: 1px solid #ccc; display: inline-block; margin-bottom: 12px; }
+    </style>
+    </head>
+    <body>
+        <div class="clock-container" id="vn-clock">🕒 Đang tải thời gian...</div>
+        <script>
+            function updateTime() {
+                let d = new Date();
+                let utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+                let nd = new Date(utc + (3600000*7)); // Múi giờ Việt Nam +7
+                let day = String(nd.getDate()).padStart(2, '0');
+                let month = String(nd.getMonth() + 1).padStart(2, '0');
+                let year = nd.getFullYear();
+                let hours = String(nd.getHours()).padStart(2, '0');
+                let minutes = String(nd.getMinutes()).padStart(2, '0');
+                let seconds = String(nd.getSeconds()).padStart(2, '0');
+                document.getElementById("vn-clock").innerText = "🕒 " + day + "/" + month + "/" + year + " " + hours + ":" + minutes + ":" + seconds;
+            }
+            setInterval(updateTime, 1000);
+            updateTime();
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_clock, height=45)
     
+    now_dt = datetime.datetime.now()
     cal = calendar.monthcalendar(now_dt.year, now_dt.month)
     df_cx = df_filtered[df_filtered['TINH_TRANG'] != "🟢 Đã hoàn thành"].copy()
     
