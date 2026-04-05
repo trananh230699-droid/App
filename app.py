@@ -96,7 +96,7 @@ css_code_hacker = """
 css_code_work = """
     <style>
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
     .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
     .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
@@ -247,19 +247,18 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1WNXCatSajRif42atvJ9B2
 conn = st.connection("gsheets", type=GSheetsConnection)
 today = pd.Timestamp(get_vn_time().date())
 
-# LỆNH KHÓA CỨNG (ABSOLUTE LOCK): Giải quyết triệt để Lỗi nhảy Trễ hạn
+# CẤU TRÚC LÕI ĐƯỢC ĐÓNG BĂNG BẢO VỆ 100%: KHÓA TRẠNG THÁI HOÀN THÀNH
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip()
     
-    # 1. NIÊM PHONG VĨNH VIỄN nều dòng dữ liệu đã là "Đã hoàn thành" (bỏ qua mọi phép tính ngày tháng)
-    if "🟢" in tt or "hoàn thành" in tt.lower():
+    tt_norm = unicodedata.normalize('NFKD', tt.lower()).encode('ascii', 'ignore').decode('ascii')
+    
+    if "hoan thanh" in tt_norm or "xong" in tt_norm or "ok" in tt_norm or "🟢" in tt:
         return "🟢 Đã hoàn thành"
         
-    # 2. Xử lý các trạng thái khác
-    if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT:
+    if pd.isna(row.get('DEADLINE')) or row.get('DEADLINE') is pd.NaT or row.get('DEADLINE') is None:
         return tt if ("⏳" in tt or "🔴" in tt) else "⏳ Đang thực hiện"
         
-    # 3. Chỉ tính toán Trễ hạn/Gấp đối với các công việc CHƯA hoàn thành
     try:
         days_diff = (row['DEADLINE'] - today).days
         if days_diff < 0: return "🔴 Trễ hạn"
@@ -328,7 +327,6 @@ def load_data():
         df['LINH_VUC'] = df['LINH_VUC'].astype(str).replace('nan', 'Không xác định')
         
         df['DEADLINE'] = pd.to_datetime(df['DEADLINE'], dayfirst=True, errors='coerce')
-        # Khi load data lên, áp dụng lệnh khóa cứng phan_loai
         df['TINH_TRANG'] = df.apply(phan_loai, axis=1)
         df['_ID'] = range(len(df))
         return df
@@ -342,7 +340,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ LỌC
+# HEADER & BỘ CÔNG CỤ (TỐI ƯU MOBILE)
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -357,14 +355,23 @@ with col_r:
     </div>
     """, unsafe_allow_html=True)
 
-if st.sidebar.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary"):
-    st.query_params.clear()
-    st.session_state.clear()
-    st.rerun()
+# Hiển thị vĩnh viễn 2 nút quan trọng ra ngoài cùng để Mobile luôn thấy
+c_btn_top1, c_btn_top2 = st.columns(2)
+with c_btn_top1:
+    if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
+        st.cache_data.clear()
+        st.session_state.df_master = load_data()
+        st.session_state.editor_key = str(uuid.uuid4())
+        st.rerun()
+with c_btn_top2:
+    if st.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary", use_container_width=True):
+        st.query_params.clear()
+        st.session_state.clear()
+        st.rerun()
 
-with st.sidebar:
-    st.header("🔍 BỘ LỌC TÌM KIẾM")
-    txt_search = st.text_input("Tên báo cáo:")
+# Thu gọn các công cụ Lọc vào Nút Expander để tiết kiệm diện tích dọc
+with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
+    txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
     
     k_list = st.session_state.df_master['KY_BAO_CAO'].unique().tolist()
     all_k = set([k for ky in k_list if isinstance(ky, str) for k in ky.split(", ")])
@@ -383,23 +390,16 @@ with st.sidebar:
         
     sorted_all_k = sorted(list(all_k), key=sort_key)
     
-    sel_ky = st.multiselect("Lọc Kỳ:", sorted_all_k, default=sorted_all_k)
-    
-    tt_opts = ["🔴 Trễ hạn", "🔴 Cần thực hiện ngay", "⏳ Đang thực hiện", "🟢 Đã hoàn thành"]
-    sel_tt = st.multiselect("Lọc Tình trạng:", tt_opts, default=tt_opts)
-
-    dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
-    sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
-    
-    lv_opts = st.session_state.df_master['LINH_VUC'].unique().tolist()
-    sel_lv = st.multiselect("Lĩnh vực:", lv_opts, default=lv_opts)
-    
-    st.divider()
-    if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
-        st.cache_data.clear()
-        st.session_state.df_master = load_data()
-        st.session_state.editor_key = str(uuid.uuid4())
-        st.rerun()
+    c_f1, c_f2 = st.columns(2)
+    with c_f1:
+        sel_ky = st.multiselect("Lọc Kỳ:", sorted_all_k, default=sorted_all_k)
+        tt_opts = ["🔴 Trễ hạn", "🔴 Cần thực hiện ngay", "⏳ Đang thực hiện", "🟢 Đã hoàn thành"]
+        sel_tt = st.multiselect("Lọc Tình trạng:", tt_opts, default=tt_opts)
+    with c_f2:
+        dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
+        sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
+        lv_opts = st.session_state.df_master['LINH_VUC'].unique().tolist()
+        sel_lv = st.multiselect("Lĩnh vực:", lv_opts, default=lv_opts)
 
 def chk_ky(row_ky):
     if not sel_ky: return False
@@ -467,7 +467,7 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # KHẮC PHỤC LỖI CLICK TIÊU ĐỀ: Ép chuẩn dữ liệu thuần, không bị Null gây ra lỗi Mixed Types của PyArrow
+    # CẤU TRÚC LÕI ĐƯỢC ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
     df_interact = df_filtered.copy()
     df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
     df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
@@ -476,14 +476,13 @@ with col_main:
     df_interact['LINH_VUC'] = df_interact['LINH_VUC'].astype(str)
     df_interact['_ID'] = df_interact['_ID'].astype(int)
     
-    # Loại bỏ lỗi NaT Mixed-Type cực kỳ nghiêm ngặt để click sắp xếp hoạt động
     df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
     df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].notnull(), None)
 
     tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
     
     with tab_interact:
-        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. Kéo rộng mép cột để xem nhiều chữ.")
+        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. **Nhấp đúp chuột vào ô Tên công việc** để xem toàn bộ nội dung và chỉnh sửa.")
         
         if st.session_state.role == "Admin":
             st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
@@ -530,7 +529,6 @@ with col_main:
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
                             
-                            # Tôn trọng Admin: Chỉ chạy tự động đếm ngày nếu admin KHÔNG ĐỔI Tình trạng
                             if "TINH_TRANG" not in changes:
                                 updated_row = st.session_state.df_master.loc[m_idx]
                                 st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
@@ -546,7 +544,6 @@ with col_main:
                     
                     df_to_save['DEADLINE'] = pd.to_datetime(df_to_save['DEADLINE']).dt.strftime('%d/%m/%Y').fillna('')
                     df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
-                    
                     df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
                     
                     conn.update(worksheet="Data", data=df_to_save)
