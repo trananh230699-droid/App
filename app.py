@@ -93,6 +93,10 @@ def check_auth_status():
         st.session_state.show_urgent_details = False
     if "map_permission" not in st.session_state:
         st.session_state.map_permission = "Mình tôi"
+    if "pending_reports" not in st.session_state:
+        st.session_state.pending_reports = []
+    if "guest_popup" not in st.session_state:
+        st.session_state.guest_popup = False
 
 check_auth_status()
 
@@ -421,6 +425,16 @@ def show_no_access_dialog():
 def show_map_dialog():
     st.markdown('<iframe src="https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F" width="100%" height="500" style="border:none; border-radius: 8px;"></iframe>', unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; margin-top: 10px;'><a href='https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F' target='_blank'>🔗 Mở bản đồ trong thẻ mới</a></p>", unsafe_allow_html=True)
+
+@st.dialog("📩 THÔNG BÁO TỪ HỆ THỐNG")
+def show_guest_submit_dialog():
+    st.success("Đề nghị của bạn đã được chuyển đến Admin và chờ xem xét.")
+    if st.button("Đã hiểu", use_container_width=True): 
+        st.session_state.guest_popup = False
+        st.rerun()
+
+if st.session_state.get('guest_popup', False):
+    show_guest_submit_dialog()
 
 c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
@@ -751,33 +765,70 @@ with col_cal:
     st.caption("🔴 Gấp/Trễ - 🟠 Còn hạn - 🔵 Viền xanh: Hôm nay")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# THÊM BÁO CÁO MỚI (ADMIN)
-if st.session_state.role == "Admin":
-    st.markdown("<br>", unsafe_allow_html=True)
-    k_map = { "Tháng 01": "2026-01-10", "Tháng 02": "2026-02-10", "Tháng 03": "2026-03-10", "Quý 1": "2026-03-10", "Tháng 04": "2026-04-10", "Tháng 05": "2026-05-10", "6 Tháng": "2026-06-10", "Tháng 06": "2026-06-10", "Tháng 07": "2026-07-10", "Tháng 08": "2026-08-10", "Tháng 09": "2026-09-10", "Quý 3": "2026-09-10", "Tháng 10": "2026-10-10", "Tháng 11": "2026-11-10", "Tháng 12": "2026-12-10", "Tổng kết năm": "2026-12-10" }
-    with st.expander("➕ THÊM BÁO CÁO MỚI (Mở Form)"):
-        with st.form("form_them", clear_on_submit=True):
-            c_t1, c_t2, c_t3 = st.columns([2, 1, 1])
-            with c_t1: f_ten = st.text_input("Tên báo cáo *")
-            with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
-            with c_t3: f_lv = st.text_input("Lĩnh vực")
-            c_f1, c_f2, c_f3 = st.columns([2, 1.2, 1])
-            with c_f1: 
-                f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
-                f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
-            with c_f2: 
-                f_d = st.date_input("Hạn chót", value=get_vn_time().date())
-                f_override = st.checkbox("☑️ Ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
-            with c_f3: f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
-            
-            if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
-                if f_ten:
-                    new_data = []
-                    max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
-                    dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"; lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
-                    final_k = list(f_k)
-                    if f_k_custom.strip(): final_k.append(f_k_custom.strip())
+# THÊM BÁO CÁO MỚI (CHUNG CHO ADMIN VÀ KHÁCH)
+st.markdown("<br>", unsafe_allow_html=True)
+k_map = { "Tháng 01": "2026-01-10", "Tháng 02": "2026-02-10", "Tháng 03": "2026-03-10", "Quý 1": "2026-03-10", "Tháng 04": "2026-04-10", "Tháng 05": "2026-05-10", "6 Tháng": "2026-06-10", "Tháng 06": "2026-06-10", "Tháng 07": "2026-07-10", "Tháng 08": "2026-08-10", "Tháng 09": "2026-09-10", "Quý 3": "2026-09-10", "Tháng 10": "2026-10-10", "Tháng 11": "2026-11-10", "Tháng 12": "2026-12-10", "Tổng kết năm": "2026-12-10" }
 
+# DANH SÁCH CHỜ DUYỆT (CHỈ ADMIN THẤY VÀ CÓ QUYỀN XỬ LÝ)
+if st.session_state.role == "Admin" and st.session_state.pending_reports:
+    st.error(f"🔔 CÓ {len(st.session_state.pending_reports)} BÁO CÁO DO KHÁCH ĐỀ XUẤT ĐANG CHỜ DUYỆT!")
+    for i, p_item in enumerate(st.session_state.pending_reports):
+        with st.expander(f"⏳ Duyệt đề xuất {i+1}: {p_item['TEN_BAO_CAO']}"):
+            c_p1, c_p2, c_p3 = st.columns([2, 1, 1])
+            edit_ten = c_p1.text_input("Tên báo cáo", value=p_item['TEN_BAO_CAO'], key=f"p_ten_{p_item['id']}")
+            edit_dv = c_p2.text_input("Đơn vị yêu cầu", value=p_item['DON_VI_YEU_CAU'], key=f"p_dv_{p_item['id']}")
+            edit_lv = c_p3.text_input("Lĩnh vực", value=p_item['LINH_VUC'], key=f"p_lv_{p_item['id']}")
+            
+            c_p4, c_p5, c_p6 = st.columns([2, 1.2, 1])
+            edit_ky = c_p4.text_input("Kỳ báo cáo", value=p_item['KY_BAO_CAO'], key=f"p_ky_{p_item['id']}")
+            edit_d = c_p5.date_input("Hạn chót", value=p_item['DEADLINE'].date() if pd.notnull(p_item['DEADLINE']) else get_vn_time().date(), key=f"p_d_{p_item['id']}")
+            edit_tt = c_p6.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"], index=0 if p_item['TINH_TRANG']=="⏳ Đang thực hiện" else 1, key=f"p_tt_{p_item['id']}")
+            
+            col_duyet, col_tuchoi = st.columns(2)
+            if col_duyet.button("✅ Lưu chỉnh sửa & Duyệt vào bảng", key=f"duyet_{p_item['id']}", type="primary"):
+                max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                n_df = pd.DataFrame([{
+                    "_ID": max_id + 1, "TEN_BAO_CAO": edit_ten, "KY_BAO_CAO": edit_ky, 
+                    "DEADLINE": pd.to_datetime(edit_d), "TINH_TRANG": edit_tt, 
+                    "DON_VI_YEU_CAU": edit_dv, "LINH_VUC": edit_lv
+                }])
+                n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
+                st.session_state.df_master = pd.concat([st.session_state.df_master, n_df], ignore_index=True)
+                st.session_state.pending_reports.pop(i)
+                st.session_state.alert_closed = False
+                st.rerun()
+            if col_tuchoi.button("❌ Từ chối & Xóa", key=f"tuchoi_{p_item['id']}"):
+                st.session_state.pending_reports.pop(i)
+                st.rerun()
+
+# FORM THÊM BÁO CÁO
+with st.expander("➕ THÊM BÁO CÁO MỚI / ĐỀ XUẤT BÁO CÁO (Mở Form)"):
+    with st.form("form_them", clear_on_submit=True):
+        c_t1, c_t2, c_t3 = st.columns([2, 1, 1])
+        with c_t1: f_ten = st.text_input("Tên báo cáo *")
+        with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
+        with c_t3: f_lv = st.text_input("Lĩnh vực")
+        c_f1, c_f2, c_f3 = st.columns([2, 1.2, 1])
+        with c_f1: 
+            f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
+            f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
+        with c_f2: 
+            f_d = st.date_input("Hạn chót", value=get_vn_time().date())
+            f_override = st.checkbox("☑️ Ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
+        with c_f3: f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
+        
+        btn_label = "➕ Thêm vào danh sách (Nhấn Enter)" if st.session_state.role == "Admin" else "➕ Gửi đề xuất báo cáo (Nhấn Enter)"
+        if st.form_submit_button(btn_label):
+            if f_ten:
+                new_data = []
+                max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
+                lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
+                final_k = list(f_k)
+                if f_k_custom.strip(): final_k.append(f_k_custom.strip())
+
+                if st.session_state.role == "Admin":
+                    # LOGIC THÊM TRỰC TIẾP CỦA ADMIN
                     if final_k:
                         for k in final_k:
                             max_id += 1; m_date = k_map.get(k)
@@ -791,3 +842,20 @@ if st.session_state.role == "Admin":
                     n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
                     st.session_state.df_master = pd.concat([st.session_state.df_master, n_df], ignore_index=True)
                     st.session_state.alert_closed = False; st.rerun()
+                else:
+                    # LOGIC KHÁCH ĐỀ XUẤT VÀO DANH SÁCH CHỜ
+                    if final_k:
+                        for k in final_k:
+                            m_date = k_map.get(k)
+                            d_val = pd.to_datetime(f_d) if f_override else (pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d))
+                            st.session_state.pending_reports.append({
+                                "id": str(uuid.uuid4()), "TEN_BAO_CAO": f_ten, "KY_BAO_CAO": k, 
+                                "DEADLINE": d_val, "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                            })
+                    else:
+                        st.session_state.pending_reports.append({
+                            "id": str(uuid.uuid4()), "TEN_BAO_CAO": f_ten, "KY_BAO_CAO": "Không xác định", 
+                            "DEADLINE": pd.to_datetime(f_d), "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                        })
+                    st.session_state.guest_popup = True
+                    st.rerun()
