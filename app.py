@@ -50,9 +50,10 @@ def add_log(status):
         json.dump(logs[-5:], f)
 
 # ==========================================
-# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI CHỐNG NÚT BACK & F5)
+# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI CHỐNG NÚT BACK)
 # ==========================================
 def check_auth_status():
+    # Chỉ lấy quyền từ session_state, hoàn toàn phớt lờ URL để chống ấn nút Back
     if "system_auth" not in st.session_state:
         st.session_state.system_auth = False
     if "logged_in" not in st.session_state:
@@ -76,7 +77,9 @@ check_auth_status()
 # ==========================================
 css_code_login = """
     <style>
+    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra - CĂN CHỈNH VỪA ĐỦ ĐỂ KHÔNG BỊ CẮT CHỮ */
     .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
+    
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
     .stTextInput input { background-color: #ffffff !important; color: #333 !important; border: 1px solid #ccc !important; font-family: sans-serif !important; font-size: 14px !important; letter-spacing: normal; text-align: left; border-radius: 5px;}
@@ -141,18 +144,18 @@ css_code_work = """
 
     div[data-testid="stElementContainer"]:has(#urgent-btn-target) + div[data-testid="stElementContainer"] button,
     div.element-container:has(#urgent-btn-target) + div.element-container button {
-        background: linear-gradient(135deg, #ff3333, #b30000) !important; color: white !important; font-weight: 900 !important; font-size: 15px !important;
+        background: linear-gradient(135deg, #ff3333, #b30000) !important; color: white !important; font-weight: 900 !important; font-size: 13px !important;
         border: 2px solid #ffb3b3 !important; border-radius: 6px !important; box-shadow: 0 0 12px rgba(255, 0, 0, 0.6) !important;
         animation: pulse-urgency 1s infinite alternate !important; margin-bottom: 5px !important; padding: 5px 0 !important;
     }
     div[data-testid="stElementContainer"]:has(#urgent-btn-clear) + div[data-testid="stElementContainer"] button,
     div.element-container:has(#urgent-btn-clear) + div.element-container button {
-        background: linear-gradient(135deg, #4CAF50, #2E7D32) !important; color: white !important; font-weight: bold !important;
+        background: linear-gradient(135deg, #4CAF50, #2E7D32) !important; color: white !important; font-weight: bold !important; font-size: 13px !important;
         border: 2px solid #c8e6c9 !important; border-radius: 6px !important; box-shadow: 0 3px 8px rgba(76, 175, 80, 0.4) !important;
         margin-bottom: 5px !important; padding: 5px 0 !important;
     }
     
-    /* MỚI: HIỆU ỨNG CHỚP NHÁY NÚT XEM LẠI CHI TIẾT KHẨN CẤP */
+    /* HIỆU ỨNG CHỚP NHÁY NÚT XEM LẠI CHI TIẾT KHẨN CẤP */
     div[data-testid="stElementContainer"]:has(#show-details-btn) + div[data-testid="stElementContainer"] button,
     div.element-container:has(#show-details-btn) + div.element-container button {
         background-color: #fff4f4 !important; border: 2px solid #ff3333 !important; color: #cc0000 !important; font-weight: 900 !important;
@@ -386,7 +389,6 @@ if not df_urgent_notify.empty:
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
-    # ĐÃ SỬA LỖI: SỬ DỤNG BUTTON CHỚP NHÁY ĐỂ TRÁNH LỖI FONT VÀ BẢO ĐẢM HOẠT ĐỘNG 100%
     if not st.session_state.show_urgent_details:
         st.markdown('<span id="show-details-btn"></span>', unsafe_allow_html=True)
         if st.button("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC CẦN LÀM GẤP", use_container_width=True):
@@ -475,18 +477,22 @@ with c_m3:
 
 # HIỂN THỊ BẢNG
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
-if not st.session_state.urgent_filter:
-    st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
-    if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
-        st.session_state.urgent_filter = True
-        st.rerun()
-else:
-    st.markdown('<span id="urgent-btn-clear"></span>', unsafe_allow_html=True)
-    if st.button("✅ ĐANG BẬT LỌC GẤP - BẤM ĐỂ HIỂN THỊ TẤT CẢ", use_container_width=True):
-        st.session_state.urgent_filter = False
-        st.rerun()
+# THU NHỎ NÚT "XEM NGAY" VÀ ĐẶT CẠNH TIÊU ĐỀ NHƯ YÊU CẦU
+c_tbl_title, c_tbl_btn = st.columns([7, 3])
+with c_tbl_title:
+    st.markdown("<h4 style='margin-top:5px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
+with c_tbl_btn:
+    if not st.session_state.urgent_filter:
+        st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
+        if st.button("🚨 XEM NGAY VIỆC CẦN LÀM", use_container_width=True):
+            st.session_state.urgent_filter = True
+            st.rerun()
+    else:
+        st.markdown('<span id="urgent-btn-clear"></span>', unsafe_allow_html=True)
+        if st.button("✅ HIỂN THỊ TẤT CẢ", use_container_width=True):
+            st.session_state.urgent_filter = False
+            st.rerun()
 
 df_filtered = df_filtered.reset_index(drop=True)
 
@@ -505,7 +511,7 @@ df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].
 tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Đã In Đậm & Bôi Đỏ Việc Gấp)"])
 
 with tab_interact:
-    st.info("💡 **Lưu ý:** Đồng chí có thể xem cụ thể hơn tại Tab **[Bảng Chi Tiết]** bên cạnh.")
+    st.info("💡 **Lưu ý:** Do giới hạn đồ họa Canvas, Bảng Tương Tác không thể bôi đỏ chữ. Đồng chí vui lòng xem màu đỏ tại Tab **[Bảng Chi Tiết]** bên cạnh.")
     
     if st.session_state.role == "Admin":
         st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
@@ -576,7 +582,7 @@ with tab_interact:
         st.dataframe(df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]], use_container_width=True, hide_index=True, column_config=g_cols)
 
 with tab_wrap:
-    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng, tự động IN ĐẬM VÀ BÔI ĐỎ các việc GẤP.")
+    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng, tự động IN ĐẬM VÀ BÔI ĐỎ các việc khẩn cấp.")
     st.table(styled_display)
     
 st.markdown('</div>', unsafe_allow_html=True)
