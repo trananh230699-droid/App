@@ -60,7 +60,14 @@ def get_logs():
 
 def add_log(status):
     logs = get_logs()
-    ip = f"192.168.1.{random.randint(10, 250)}"
+    # IP chuyên nghiệp hơn, kết hợp cả dải nội bộ và dải public Việt Nam
+    ip_prefixes = ["14.161", "113.160", "42.112", "116.108", "192.168.1", "10.0.0", "172.16.2"]
+    prefix = random.choice(ip_prefixes)
+    if prefix.count('.') == 1:
+        ip = f"{prefix}.{random.randint(0, 255)}.{random.randint(1, 254)}"
+    else:
+        ip = f"{prefix}.{random.randint(1, 254)}"
+        
     now = get_vn_time().strftime("%d/%m/%Y %H:%M:%S")
     logs.append({"time": now, "ip": ip, "status": status})
     with open(LOG_FILE, "w") as f:
@@ -84,6 +91,8 @@ def check_auth_status():
         st.session_state.alert_closed = False
     if "show_urgent_details" not in st.session_state:
         st.session_state.show_urgent_details = False
+    if "map_permission" not in st.session_state:
+        st.session_state.map_permission = "Mình tôi"
 
 check_auth_status()
 
@@ -379,16 +388,43 @@ with col_r:
     r_txt = "Admin (Nội bộ)" if st.session_state.role == "Admin" else "Khách (Chỉ xem)"
     st.markdown(f"""<div class="codx-header"><p class="codx-title">☑️ HỆ THỐNG QUẢN TRỊ CÔNG VIỆC CAP AN KHÁNH, TP. Hồ Chí Minh - (Location: Việt Nam)</p><p style="margin:0; opacity:0.9;">Quyền truy cập hiện tại: <b>{r_txt}</b></p></div>""", unsafe_allow_html=True)
 
+@st.dialog("⛔ TỪ CHỐI TRUY CẬP")
+def show_no_access_dialog():
+    st.error("Bạn không có quyền xem nội dung này, hãy liên hệ với admin để được cấp quyền.")
+
+@st.dialog("🗺️ BẢN ĐỒ SỐ CAMERA CAP", width="large")
+def show_map_dialog():
+    st.markdown('<iframe src="https://www.google.com/maps/d/u/0/edit?mid=1i42oxxsFlQYoelXhftEkbAOsusCuOK4&usp=sharing" width="100%" height="500" style="border:none; border-radius: 8px;"></iframe>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; margin-top: 10px;'><a href='https://www.google.com/maps/d/u/0/edit?mid=1i42oxxsFlQYoelXhftEkbAOsusCuOK4&usp=sharing' target='_blank'>🔗 Mở bản đồ trong thẻ mới</a></p>", unsafe_allow_html=True)
+
 c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
     if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
-        st.cache_data.clear(); st.session_state.df_master = load_data(); st.session_state.editor_key = str(uuid.uuid4()); st.session_state.alert_closed = False; st.rerun()
+        st.cache_data.clear()
+        st.session_state.df_master = load_data()
+        st.session_state.editor_key = str(uuid.uuid4())
+        st.session_state.alert_closed = False
+        st.session_state.show_urgent_details = False  # TỰ ĐỘNG ĐÓNG DANH SÁCH VIỆC GẤP
+        st.session_state.urgent_filter = False  # TỰ ĐỘNG ĐÓNG BỘ LỌC XEM NGAY
+        st.rerun()
 with c_btn_top2:
     if st.button("🔙 ĐỔI QUYỀN", use_container_width=True):
         st.query_params.clear(); st.session_state.logged_in = False; st.session_state.role = None; st.rerun()
 with c_btn_top3:
     if st.button("🚪 ĐĂNG XUẤT", type="primary", use_container_width=True):
         st.query_params.clear(); st.session_state.clear(); st.rerun()
+
+# MỤC BẢN ĐỒ SỐ CAMERA CAP
+col_map_btn, col_map_perm = st.columns([2, 8])
+with col_map_btn:
+    if st.button("🗺️ Bản đồ Camera"):
+        if st.session_state.role == "Admin" or st.session_state.map_permission == "Mọi người":
+            show_map_dialog()
+        else:
+            show_no_access_dialog()
+with col_map_perm:
+    if st.session_state.role == "Admin":
+        st.session_state.map_permission = st.radio("Quyền xem bản đồ:", ["Mình tôi", "Mọi người"], horizontal=True, label_visibility="collapsed")
 
 # BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP (MODAL POPUP)
 @st.dialog("🚨 BẢNG THÔNG BÁO QUAN TRỌNG")
