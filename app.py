@@ -394,8 +394,8 @@ def show_no_access_dialog():
 
 @st.dialog("🗺️ BẢN ĐỒ SỐ CAMERA CAP", width="large")
 def show_map_dialog():
-    st.markdown('<iframe src="<iframe src="https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F" width="640" height="480"></iframe>" width="100%" height="500" style="border:none; border-radius: 8px;"></iframe>', unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; margin-top: 10px;'><a href='<iframe src="https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F" width="640" height="480"></iframe>' target='_blank'>🔗 Mở bản đồ trong thẻ mới</a></p>", unsafe_allow_html=True)
+    st.markdown('<iframe src="https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F" width="640" height="480"></iframe>" width="100%" height="500" style="border:none; border-radius: 8px;"></iframe>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; margin-top: 10px;'><a href='https://www.google.com/maps/d/u/1/embed?mid=1baniw2Uon9QVLK8WkRxuF2w6WqkjgxQ&ehbc=2E312F" width="640" height="480"></iframe>' target='_blank'>🔗 Mở bản đồ trong thẻ mới</a></p>", unsafe_allow_html=True)
 
 c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
