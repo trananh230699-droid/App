@@ -443,7 +443,7 @@ with c_btn_top2:
         st.rerun()
 
 # ==========================================
-# BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP (NỔI BẬT)
+# BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP ĐẦU TRANG
 # ==========================================
 df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 if not df_urgent_notify.empty:
@@ -452,7 +452,8 @@ if not df_urgent_notify.empty:
         st.session_state.reminder_shown = True
         
     st.error(f"🔔 **BẢNG THÔNG BÁO NHẮC VIỆC:** Đồng chí có **{len(df_urgent_notify)}** công việc đến hạn hoặc trễ hạn cần xử lý gấp!")
-    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=True):
+    # SỬA LỖI: Thu gọn expander mặc định (expanded=False) để giao diện chuyên nghiệp
+    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
         for _, ur_row in df_urgent_notify.iterrows():
             ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
             st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
@@ -526,7 +527,6 @@ c_m1, c_m2, c_m3 = st.columns(3)
 with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
 with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
 with c_m3: 
-    # Logic thông minh: Chỉ hiện nhấp nháy Cảnh báo nếu thực sự có việc Trễ hạn
     delta_text = "🚨 CẢNH BÁO" if late > 0 else ""
     st.metric("TRỄ HẠN", late, delta=delta_text, delta_color="inverse" if late > 0 else "normal")
 
