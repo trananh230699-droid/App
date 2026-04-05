@@ -437,7 +437,7 @@ with c_btn_top1:
         st.cache_data.clear()
         st.session_state.df_master = load_data()
         st.session_state.editor_key = str(uuid.uuid4())
-        st.session_state.alert_closed = False # Khôi phục cảnh báo khi làm mới
+        st.session_state.alert_closed = False 
         st.rerun()
 with c_btn_top2:
     if st.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary", use_container_width=True):
@@ -466,11 +466,9 @@ if not df_urgent_notify.empty:
         st.toast(f"🚨 CẢNH BÁO: Có {len(df_urgent_notify)} báo cáo khẩn cấp cần xử lý ngay!", icon="🔔")
         st.session_state.reminder_shown = True
         
-    # HIỆN BẢNG POPUP NẾU CHƯA BẤM ĐÓNG
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
-    # NÚT XEM LẠI LUÔN TỒN TẠI DÙ ĐÃ ĐÓNG POPUP
     with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
         for _, ur_row in df_urgent_notify.iterrows():
             ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
@@ -524,7 +522,7 @@ else:
     df_filtered = df_base_filtered.copy()
 
 # ==========================================
-# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT) - FIX LỖI KHÔNG ĐỒNG BỘ LỌC
+# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT) 
 # ==========================================
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
 if pd.api.types.is_datetime64_any_dtype(df_display['DEADLINE']):
@@ -536,7 +534,7 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
 )
 
 # ------------------------------------------
-# THỐNG KÊ (Sử dụng df_base_filtered để giữ nguyên tỷ lệ tổng thể của Kỳ báo cáo)
+# THỐNG KÊ (Sử dụng df_base_filtered để biểu đồ không bị sai khi lọc)
 # ------------------------------------------
 total = len(df_base_filtered)
 done = len(df_base_filtered[df_base_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -556,7 +554,6 @@ with c_m3:
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
 st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
-# NÚT BẤM XEM NGAY VIỆC CẦN LÀM
 if not st.session_state.urgent_filter:
     st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
     if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
@@ -679,7 +676,7 @@ with tab_wrap:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# BIỂU ĐỒ & LỊCH (Sử dụng df_base_filtered)
+# BIỂU ĐỒ & LỊCH 
 # ------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 col_chart, col_cal = st.columns(2)
@@ -692,7 +689,6 @@ with col_chart:
     
     if total > 0:
         fig = px.pie(df_base_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
-        # Đã cập nhật để hiển thị phần trăm rõ ràng lên biểu đồ
         fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
@@ -792,13 +788,14 @@ if st.session_state.role == "Admin":
             with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
             with c_t3: f_lv = st.text_input("Lĩnh vực")
             
-            c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
+            c_f1, c_f2, c_f3 = st.columns([2, 1.2, 1])
             with c_f1: 
                 f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
                 f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
                 
             with c_f2: 
                 f_d = st.date_input("Hạn chót", value=get_vn_time().date())
+                f_override = st.checkbox("☑️ Ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
             with c_f3: 
                 f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
             
@@ -817,7 +814,12 @@ if st.session_state.role == "Admin":
                         for k in final_k:
                             max_id += 1
                             m_date = k_map.get(k)
-                            d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
+                            
+                            # CƠ CHẾ GHI ĐÈ: Nếu được tick, ép dùng ngày f_d, bỏ qua m_date
+                            if f_override:
+                                d_val = pd.to_datetime(f_d)
+                            else:
+                                d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
                             
                             new_data.append({
                                 "_ID": max_id, "TEN_BAO_CAO": f_ten, 
