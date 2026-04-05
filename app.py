@@ -117,7 +117,7 @@ css_code_login = """
     .stat-fail { color: #F44336; font-weight: bold; }
     /* NÂNG CẤP POPUP LOADING */
     .terminal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9998; }
-    .terminal-load { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 450px; z-index: 9999; font-family: 'Consolas', monospace; color: #33ff33; font-size: 14px; line-height: 1.6; background: #000; padding: 25px; border-radius: 8px; border: 2px solid #33ff33; box-shadow: 0 0 30px rgba(51,255,51,0.6); text-align: left; }
+    .terminal-load { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 500px; z-index: 9999; font-family: 'Consolas', monospace; color: #33ff33; font-size: 14px; line-height: 1.6; background: #000; padding: 25px; border-radius: 8px; border: 2px solid #33ff33; box-shadow: 0 0 30px rgba(51,255,51,0.6); text-align: left; }
     footer, #MainMenu, header {visibility: hidden;}
     </style>
 """
@@ -255,18 +255,32 @@ if not st.session_state.system_auth:
                 if sys_user == "admin" and sys_pwd == "CY":
                     add_log("SUCCESS")
                     loader = st.empty()
-                    base_txt = "> <span style='color:#00e5ff;'>Initializing secure protocol...</span> <span style='color:#00ff00;'>[OK]</span><br>> <span style='color:#ffcc00;'>Bypassing node security...</span> <span style='color:#00ff00;'>[OK]</span><br>> <b style='color:#ff3333;'>DECRYPTING MAINFRAME:</b><br><br>"
+                    
+                    # NÂNG CẤP HIỆU ỨNG HACKER AN NINH
+                    terminal_steps = [
+                        "<span style='color:#00e5ff;'>[SECURE] Initiating Handshake with CAP Server...</span> <span style='color:#00ff00;'>[OK]</span>",
+                        "<span style='color:#00e5ff;'>[SECURE] Bypassing Node Firewalls & Routing VPN...</span> <span style='color:#00ff00;'>[OK]</span>",
+                        "<span style='color:#ffcc00;'>[AUTH] Verifying Administrator Cryptographic Token...</span> <span style='color:#00ff00;'>[VALID]</span>",
+                        "<span style='color:#ffcc00;'>[AUTH] Scanning Biometric Clearance Level...</span> <span style='color:#00ff00;'>[LEVEL: ALPHA]</span>",
+                        "<b style='color:#ff3333;'>[CORE] DECRYPTING MAINFRAME & INJECTING PAYLOAD:</b>"
+                    ]
+                    base_txt = ""
+                    for step in terminal_steps:
+                        base_txt += f"> {step}<br>"
+                        loader.markdown(f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00; font-size:16px; animation: blink 1s infinite;">_</span></div>', unsafe_allow_html=True)
+                        time.sleep(0.3)
+                    
+                    base_txt += "<br>"
                     spinners = ['|', '/', '-', '\\']
                     for i in range(1, 21):
                         bar_fill = "█" * i
                         bar_empty = "-" * (20 - i)
                         pct = i * 5
                         spin = spinners[i % 4]
-                        # Render dưới dạng Popup Overlay
-                        html_load = f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}% {spin}</span></div>'
+                        html_load = f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}% {spin}</span><br><br><span style="color:#ffcc00; font-size:11px;"><i>(Hệ thống an ninh đang kiểm duyệt tự động, vui lòng không tắt trình duyệt...)</i></span></div>'
                         loader.markdown(html_load, unsafe_allow_html=True)
                         time.sleep(0.12)
-                    loader.markdown(f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> <span style="color:#00e5ff;">ACCESS GRANTED. PROCEED TO ROLE SELECTION.</span></div>', unsafe_allow_html=True)
+                    loader.markdown(f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> <span style="color:#00e5ff;">ACCESS GRANTED. PROCEEDING TO DASHBOARD...</span></div>', unsafe_allow_html=True)
                     time.sleep(0.8)
                     st.session_state.system_auth = True
                     if 'df_master' in st.session_state: del st.session_state['df_master']
@@ -590,6 +604,20 @@ df_interact['_ID'] = df_interact['_ID'].astype(int)
 df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
 df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].notnull(), None)
 
+# NÂNG CẤP BẢNG TƯƠNG TÁC: NHUỘM MÀU TRỰC TIẾP BÁO CÁO GẤP
+def highlight_interact(row):
+    styles = []
+    status = str(row.get('TINH_TRANG', ''))
+    is_urgent = "Trễ hạn" in status or "Cần thực hiện ngay" in status
+    for col in row.index:
+        if col == 'TINH_TRANG': 
+            styles.append('font-weight: bold;') 
+        elif is_urgent: 
+            styles.append('color: #cc0000; font-weight: bold; background-color: #ffeeee;') 
+        else: 
+            styles.append('')
+    return styles
+
 tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Đã In Đậm & Bôi Đỏ Việc Gấp)"])
 
 with tab_interact:
@@ -609,8 +637,11 @@ with tab_interact:
             "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width=110),
             "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width=110)
         }
-
-        edited_df = st.data_editor(df_interact, key=st.session_state.editor_key, use_container_width=True, hide_index=True, column_config=c_cols)
+        
+        # Áp dụng Styler trực tiếp vào st.data_editor
+        styled_interact = df_interact.style.apply(highlight_interact, axis=1)
+        edited_df = st.data_editor(styled_interact, key=st.session_state.editor_key, use_container_width=True, hide_index=True, column_config=c_cols)
+        
         editor_state = st.session_state.get(st.session_state.editor_key, {})
         has_changes = False
 
@@ -661,7 +692,10 @@ with tab_interact:
             "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width=110),
             "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width=110)
         }
-        st.dataframe(df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]], use_container_width=True, hide_index=True, column_config=g_cols)
+        
+        guest_df = df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]]
+        styled_guest = guest_df.style.apply(highlight_interact, axis=1)
+        st.dataframe(styled_guest, use_container_width=True, hide_index=True, column_config=g_cols)
 
 with tab_wrap:
     st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng, tự động IN ĐẬM VÀ BÔI ĐỎ các việc khẩn cấp.")
