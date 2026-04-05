@@ -10,45 +10,34 @@ import calendar
 import time
 import json
 import random
-import base64
+import shutil  # THƯ VIỆN MỚI BẮT BUỘC ĐỂ XÓA CON THUYỀN
 from streamlit_gsheets import GSheetsConnection
+
+# ==========================================
+# CHIẾN DỊCH: TIÊU DIỆT LOGO CON THUYỀN TẬN GỐC MÁY CHỦ
+# ==========================================
+try:
+    # Truy tìm tọa độ thư mục gốc của Streamlit
+    st_dir = os.path.dirname(st.__file__)
+    static_dir = os.path.join(st_dir, "static")
+    favicon_path = os.path.join(static_dir, "favicon.png")
+    
+    # Chép đè trực tiếp logo của đồng chí lên file con thuyền mặc định
+    if os.path.exists("logo.png"):
+        shutil.copyfile("logo.png", favicon_path)
+        # Tạo thêm file chuyên dụng cho hệ thống iOS của Apple
+        shutil.copyfile("logo.png", os.path.join(static_dir, "apple-touch-icon.png"))
+except Exception as e:
+    pass
 
 # ==========================================
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
     page_title="Hệ thống Quản trị - CAP An Khánh", 
-    page_icon="☑️", 
+    page_icon="logo.png" if os.path.exists("logo.png") else "☑️", 
     layout="wide"
 )
-# ==========================================
-# ÉP LOGO NÉT CĂNG CHO MÀN HÌNH CHÍNH (IOS/ANDROID) - ĐÃ SỬA LỖI IFRAME
-# ==========================================
-import base64
-if os.path.exists("logo.png"):
-    with open("logo.png", "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode()
-        
-    apple_icon_html = f"""
-    <script>
-        // Xuyên thủng lớp mặt nạ iframe của Streamlit để cắm thẳng vào thẻ Head gốc
-        var parentDocument = window.parent.document;
-        
-        // Cắm icon cho Apple (iPhone/iPad)
-        var appleLink = parentDocument.createElement('link');
-        appleLink.rel = 'apple-touch-icon';
-        appleLink.href = 'data:image/png;base64,{encoded_string}';
-        parentDocument.head.appendChild(appleLink);
-        
-        // Cắm icon chuẩn cho Android/Trình duyệt chung
-        var iconLink = parentDocument.createElement('link');
-        iconLink.rel = 'icon';
-        iconLink.href = 'data:image/png;base64,{encoded_string}';
-        parentDocument.head.appendChild(iconLink);
-    </script>
-    """
-    # Lệnh render HTML xuyên thấu
-    components.html(apple_icon_html, height=0, width=0)
 # ==========================================
 # ĐỒNG BỘ MÚI GIỜ VIỆT NAM (UTC+7)
 # ==========================================
