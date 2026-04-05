@@ -69,7 +69,7 @@ if "urgent_filter" not in st.session_state:
 css_code_login = """
     <style>
     /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; margin-top: -3rem !important;}
     
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
@@ -89,7 +89,7 @@ css_code_login = """
 
 css_code_hacker = """
     <style>
-    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; margin-top: -3rem !important;}
     .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
     .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
@@ -102,12 +102,12 @@ css_code_hacker = """
 css_code_work = """
     <style>
     /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-top: -3rem !important;}
     
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
-    .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; margin-top: 5px;}
+    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 12px 20px; border-radius: 8px; color: white; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .codx-title { font-size: 20px; font-weight: 700; margin: 0; }
+    .codx-card { background-color: white; padding: 12px 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; margin-top: 0px;}
     .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
@@ -120,18 +120,18 @@ css_code_work = """
     
     /* Chỉnh sửa thẩm mỹ cho Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { background-color: #EAECEF; border-radius: 5px 5px 0 0; padding: 10px 20px; font-weight: bold;}
+    .stTabs [data-baseweb="tab"] { background-color: #EAECEF; border-radius: 5px 5px 0 0; padding: 8px 15px; font-weight: bold;}
     .stTabs [aria-selected="true"] { background-color: #0078D7; color: white !important; }
 
     /* ========================================= */
-    /* TỐI ƯU KHU VỰC THỐNG KÊ (METRICS) NHỎ GỌN */
+    /* TỐI ƯU KHU VỰC THỐNG KÊ (METRICS) SIÊU GỌN */
     /* ========================================= */
     div[data-testid="metric-container"] {
-        padding: 10px !important;
+        padding: 5px 10px !important;
         background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border: 1px solid #EAECEF;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        border: 1px solid #ccc;
         text-align: center;
         margin-bottom: 5px !important;
     }
@@ -139,54 +139,57 @@ css_code_work = """
         align-items: center;
         justify-content: center;
     }
-    [data-testid="stMetricLabel"] { font-size: 12px !important; font-weight: bold; margin-bottom: -5px !important;}
-    [data-testid="stMetricValue"] { font-size: 22px !important; line-height: 1.2 !important; }
-    [data-testid="stMetricDelta"] { font-size: 11px !important; }
+    [data-testid="stMetricLabel"] { font-size: 11px !important; font-weight: bold; margin-bottom: -8px !important; color: #555;}
+    [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #005B9F;}
+    [data-testid="stMetricDelta"] { font-size: 10px !important; display: none;} /* Ẩn Delta thừa */
 
     /* ========================================= */
     /* HIỆU ỨNG NÚT BẤM XEM NGAY VIỆC CẦN LÀM   */
     /* ========================================= */
-    div:has(> span#urgent-btn-target) + div button {
+    div[data-testid="stElementContainer"]:has(#urgent-btn-target) + div[data-testid="stElementContainer"] button,
+    div.element-container:has(#urgent-btn-target) + div.element-container button {
         background: linear-gradient(135deg, #ff3333, #b30000) !important;
         color: white !important;
         font-weight: 900 !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         border: 2px solid #ffb3b3 !important;
-        border-radius: 8px !important;
-        box-shadow: 0 0 15px rgba(255, 0, 0, 0.5) !important;
-        animation: pulse-urgency 1.5s infinite !important;
-        margin-bottom: 10px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 0 12px rgba(255, 0, 0, 0.6) !important;
+        animation: pulse-urgency 1s infinite alternate !important;
+        margin-bottom: 5px !important;
+        padding: 5px 0 !important;
     }
-    div:has(> span#urgent-btn-clear) + div button {
+    div[data-testid="stElementContainer"]:has(#urgent-btn-clear) + div[data-testid="stElementContainer"] button,
+    div.element-container:has(#urgent-btn-clear) + div.element-container button {
         background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
         color: white !important;
         font-weight: bold !important;
         border: 2px solid #c8e6c9 !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4) !important;
-        margin-bottom: 10px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 3px 8px rgba(76, 175, 80, 0.4) !important;
+        margin-bottom: 5px !important;
+        padding: 5px 0 !important;
     }
     @keyframes pulse-urgency {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
-        50% { transform: scale(1.01); box-shadow: 0 0 0 12px rgba(255, 0, 0, 0); }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8); }
+        100% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(255, 51, 51, 0); }
     }
 
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
     @media screen and (max-width: 768px) {
-        .codx-header { padding: 12px; text-align: center; }
-        .codx-title { font-size: 18px !important; }
+        .codx-header { padding: 10px; text-align: center; }
+        .codx-title { font-size: 16px !important; }
         .stTabs [data-baseweb="tab-list"] { overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; }
-        .stTabs [data-baseweb="tab"] { padding: 8px 12px; font-size: 12px; white-space: nowrap; }
-        .codx-card { padding: 10px; }
+        .stTabs [data-baseweb="tab"] { padding: 6px 10px; font-size: 11px; white-space: nowrap; }
+        .codx-card { padding: 8px; }
         .stMetric { text-align: center; }
         table { font-size: 11px !important; }
     }
     @media screen and (max-width: 430px) {
-        .codx-title { font-size: 16px !important; }
-        .stTabs [data-baseweb="tab"] { padding: 6px 10px; font-size: 11px; }
-        .clock-container { font-size: 11px !important; padding: 4px 10px !important; }
-        table th { font-size: 11px !important; padding: 2px !important; }
+        .codx-title { font-size: 15px !important; }
+        .stTabs [data-baseweb="tab"] { padding: 5px 8px; font-size: 10px; }
+        .clock-container { font-size: 10px !important; padding: 3px 8px !important; }
+        table th { font-size: 10px !important; padding: 2px !important; }
     }
     </style>
 """
@@ -482,7 +485,7 @@ if st.session_state.urgent_filter:
     df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 
 # ------------------------------------------
-# THỐNG KÊ
+# THỐNG KÊ SIÊU GỌN 
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -492,15 +495,16 @@ tl_ht = round(done/total*100) if total > 0 else 0
 c_m1, c_m2, c_m3 = st.columns(3)
 with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
 with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
-with c_m3: st.metric("TRỄ HẠN", late, delta_color="inverse", delta="Cảnh báo")
+with c_m3: st.metric("TRỄ HẠN", late)
 
 # ------------------------------------------
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
 # ------------------------------------------
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
+# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng
+st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
-# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY)
+# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY MÀU ĐỎ)
 if not st.session_state.urgent_filter:
     st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
     if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
