@@ -121,6 +121,26 @@ css_code_work = """
     .stTabs [data-baseweb="tab"] { background-color: #EAECEF; border-radius: 5px 5px 0 0; padding: 10px 20px; font-weight: bold;}
     .stTabs [aria-selected="true"] { background-color: #0078D7; color: white !important; }
 
+    /* ========================================= */
+    /* TỐI ƯU KHU VỰC THỐNG KÊ (METRICS) NHỎ GỌN */
+    /* ========================================= */
+    div[data-testid="metric-container"] {
+        padding: 10px !important;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #EAECEF;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    div[data-testid="metric-container"] > div {
+        align-items: center;
+        justify-content: center;
+    }
+    [data-testid="stMetricLabel"] { font-size: 12px !important; font-weight: bold; margin-bottom: -5px !important;}
+    [data-testid="stMetricValue"] { font-size: 22px !important; line-height: 1.2 !important; }
+    [data-testid="stMetricDelta"] { font-size: 11px !important; }
+
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
     @media screen and (max-width: 768px) {
         .codx-header { padding: 12px; text-align: center; }
@@ -347,7 +367,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ CÔNG CỤ (HIỂN THỊ LUÔN Ở TRÊN CÙNG)
+# HEADER & BỘ CÔNG CỤ
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -362,7 +382,6 @@ with col_r:
     </div>
     """, unsafe_allow_html=True)
 
-# Hiển thị vĩnh viễn 2 nút quan trọng ra ngoài cùng để Mobile luôn thấy
 c_btn_top1, c_btn_top2 = st.columns(2)
 with c_btn_top1:
     if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
@@ -376,7 +395,6 @@ with c_btn_top2:
         st.session_state.clear()
         st.rerun()
 
-# Thu gọn các công cụ Lọc vào Nút Expander
 with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
     txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
     
@@ -389,12 +407,9 @@ with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ L
         "Tháng 07", "Tháng 08", "Tháng 09", "Quý 3", 
         "Tháng 10", "Tháng 11", "Tháng 12", "Tổng kết năm"
     ]
-    
     def sort_key(k):
-        if k in ordered_periods:
-            return (0, ordered_periods.index(k))
+        if k in ordered_periods: return (0, ordered_periods.index(k))
         return (1, k)
-        
     sorted_all_k = sorted(list(all_k), key=sort_key)
     
     c_f1, c_f2 = st.columns(2)
@@ -434,7 +449,7 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
 )
 
 # ------------------------------------------
-# THỐNG KÊ (ĐẨY LÊN TRÊN ĐỂ TIẾT KIỆM KHÔNG GIAN)
+# THỐNG KÊ (ĐÃ ĐƯỢC TỐI ƯU CSS THU GỌN BÊN TRÊN)
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -445,8 +460,6 @@ c_m1, c_m2, c_m3 = st.columns(3)
 with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
 with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
 with c_m3: st.metric("TRỄ HẠN", late, delta_color="inverse", delta="Cảnh báo")
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 # ------------------------------------------
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
@@ -484,7 +497,7 @@ if sort_col != "Mặc định (Không sắp xếp)":
     )
 df_filtered = df_filtered.reset_index(drop=True)
 
-# CẤU TRÚC LÕI ĐƯỢC ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
+# LÕI ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
 df_interact = df_filtered.copy()
 df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
 df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
@@ -509,11 +522,11 @@ with tab_interact:
             "_ID": None, 
             "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width="small"), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width="small"),
             "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
-            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width="small"),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="small")
         }
 
         edited_df = st.data_editor(
@@ -574,11 +587,11 @@ with tab_interact:
     else:
         g_cols = {
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width="small"), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width="small"),
             "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width="medium"),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
-            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width="small"),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="small")
         }
         st.dataframe(
             df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]],
@@ -586,13 +599,13 @@ with tab_interact:
         )
 
 with tab_wrap:
-    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng xuống hàng giống y hệt Excel để tiện việc theo dõi báo cáo dài, tuy nhiên bảng này không cho phép nhấn tiêu đề để sắp xếp.")
+    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng xuống hàng giống y hệt Excel để tiện việc theo dõi báo cáo dài.")
     st.table(styled_display)
     
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# BIỂU ĐỒ & LỊCH (ĐƯỢC DI CHUYỂN XUỐNG DƯỚI)
+# BIỂU ĐỒ & LỊCH 
 # ------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 col_chart, col_cal = st.columns(2)
