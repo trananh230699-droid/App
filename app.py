@@ -68,8 +68,8 @@ if "urgent_filter" not in st.session_state:
 # ==========================================
 css_code_login = """
     <style>
-    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; margin-top: -3rem !important;}
+    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra - CĂN CHỈNH VỪA ĐỦ ĐỂ KHÔNG BỊ CẮT CHỮ */
+    .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
@@ -89,7 +89,7 @@ css_code_login = """
 
 css_code_hacker = """
     <style>
-    .block-container { padding-top: 0.5rem !important; padding-bottom: 1rem !important; margin-top: -3rem !important;}
+    .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
     .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
@@ -101,8 +101,8 @@ css_code_hacker = """
 
 css_code_work = """
     <style>
-    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; margin-top: -3rem !important;}
+    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra - CĂN CHỈNH VỪA ĐỦ ĐỂ KHÔNG BỊ CẮT CHỮ */
+    .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
     .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 12px 20px; border-radius: 8px; color: white; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -112,11 +112,11 @@ css_code_work = """
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
     
-    /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML */
+    /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML - FIX MÀU CHỮ ĐỂ KHÔNG BỊ LỖI DARK MODE */
     .stTable { background-color: white; border-radius: 5px; overflow: hidden; margin-top: 5px; }
-    .stTable table { width: 100% !important; border-collapse: collapse; }
-    .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; }
-    .stTable th { background-color: #f8f9fa; font-weight: bold; }
+    .stTable table { width: 100% !important; border-collapse: collapse; color: #333333 !important;}
+    .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; color: #333333 !important;}
+    .stTable th { background-color: #f8f9fa; font-weight: bold; color: #000000 !important;}
     
     /* Chỉnh sửa thẩm mỹ cho Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; }
@@ -485,7 +485,7 @@ if st.session_state.urgent_filter:
     df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 
 # ------------------------------------------
-# THỐNG KÊ SIÊU GỌN 
+# THỐNG KÊ (ĐÃ ÉP CSS SIÊU GỌN)
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -501,10 +501,10 @@ with c_m3: st.metric("TRỄ HẠN", late)
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
 # ------------------------------------------
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng
+# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng, xóa bỏ khoảng trắng thừa
 st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
-# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY MÀU ĐỎ)
+# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY MÀU ĐỎ CẢNH BÁO)
 if not st.session_state.urgent_filter:
     st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
     if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
