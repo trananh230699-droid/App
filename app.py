@@ -16,7 +16,7 @@ from streamlit_gsheets import GSheetsConnection
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
-    page_title="Hệ thống Quản trị - CAP An Khánh, TP. Hồ Chí Minh             Location: Việt Nam", 
+    page_title="Hệ thống Quản trị - CAP An Khánh", 
     page_icon="☑️", 
     layout="wide"
 )
@@ -355,7 +355,7 @@ with col_l:
     if os.path.exists("logo.png"): st.image("logo.png", width=90)
 with col_r:
     r_txt = "Admin (Nội bộ)" if st.session_state.role == "Admin" else "Khách (Chỉ xem)"
-    st.markdown(f"""<div class="codx-header"><p class="codx-title">☑️ HỆ THỐNG QUẢN TRỊ CÔNG VIỆC CAP AN KHÁNH</p><p style="margin:0; opacity:0.9;">Quyền truy cập hiện tại: <b>{r_txt}</b></p></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="codx-header"><p class="codx-title">☑️ HỆ THỐNG QUẢN TRỊ CÔNG VIỆC CAP AN KHÁNH, TP. Hồ Chí Minh             Location: Việt Nam</p><p style="margin:0; opacity:0.9;">Quyền truy cập hiện tại: <b>{r_txt}</b></p></div>""", unsafe_allow_html=True)
 
 c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
