@@ -505,7 +505,7 @@ df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].
 tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Đã In Đậm & Bôi Đỏ Việc Gấp)"])
 
 with tab_interact:
-    st.info("💡 **Lưu ý:** Do giới hạn đồ họa Canvas, Bảng Tương Tác không thể bôi đỏ chữ. Đồng chí vui lòng xem màu đỏ tại Tab **[Bảng Chi Tiết]** bên cạnh.")
+    st.info("💡 **Lưu ý:** Đồng chí có thể xem cụ thể hơn tại Tab **[Bảng Chi Tiết]** bên cạnh.")
     
     if st.session_state.role == "Admin":
         st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
