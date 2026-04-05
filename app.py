@@ -64,6 +64,8 @@ if "urgent_filter" not in st.session_state:
     st.session_state.urgent_filter = False
 if "reminder_shown" not in st.session_state:
     st.session_state.reminder_shown = False
+if "alert_closed" not in st.session_state:
+    st.session_state.alert_closed = False
 
 # ==========================================
 # GIAO DIỆN CSS: CHIA 3 GIAI ĐOẠN ĐỘC LẬP
@@ -435,6 +437,7 @@ with c_btn_top1:
         st.cache_data.clear()
         st.session_state.df_master = load_data()
         st.session_state.editor_key = str(uuid.uuid4())
+        st.session_state.alert_closed = False # Reset lại cảnh báo khi làm mới
         st.rerun()
 with c_btn_top2:
     if st.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary", use_container_width=True):
@@ -443,16 +446,27 @@ with c_btn_top2:
         st.rerun()
 
 # ==========================================
-# BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP ĐẦU TRANG
+# BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP TRUNG TÂM
 # ==========================================
 df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
-if not df_urgent_notify.empty:
+if not df_urgent_notify.empty and not st.session_state.alert_closed:
     if not st.session_state.reminder_shown:
         st.toast(f"🚨 CẢNH BÁO: Có {len(df_urgent_notify)} báo cáo khẩn cấp cần xử lý ngay!", icon="🔔")
         st.session_state.reminder_shown = True
         
-    st.error(f"🔔 **BẢNG THÔNG BÁO NHẮC VIỆC:** Đồng chí có **{len(df_urgent_notify)}** công việc đến hạn hoặc trễ hạn cần xử lý gấp!")
-    # SỬA LỖI: Thu gọn expander mặc định (expanded=False) để giao diện chuyên nghiệp
+    st.markdown("""
+    <div style="background-color: #fff4f4; border: 3px solid #ff3333; border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 4px 15px rgba(255, 0, 0, 0.2); margin-bottom: 10px;">
+        <h3 style="color: #cc0000; margin-top: 0; margin-bottom: 10px; font-weight: 900;">🚨 CẢNH BÁO KHẨN CẤP 🚨</h3>
+        <p style="font-size: 16px; color: #333; margin-bottom: 0;">Đồng chí có <b>%d</b> công việc đến hạn hoặc trễ hạn cần xử lý gấp!</p>
+    </div>
+    """ % len(df_urgent_notify), unsafe_allow_html=True)
+    
+    c_btn1, c_btn2, c_btn3 = st.columns([1, 1, 1])
+    with c_btn2:
+        if st.button("❌ Đã hiểu - Đóng cảnh báo", use_container_width=True):
+            st.session_state.alert_closed = True
+            st.rerun()
+
     with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
         for _, ur_row in df_urgent_notify.iterrows():
             ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
@@ -635,6 +649,7 @@ with tab_interact:
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
                 
                 st.cache_data.clear()
+                st.session_state.alert_closed = False # Reset cảnh báo khi có cập nhật mới
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
@@ -817,4 +832,5 @@ if st.session_state.role == "Admin":
                         [st.session_state.df_master, n_df], 
                         ignore_index=True
                     )
+                    st.session_state.alert_closed = False # Reset cảnh báo khi thêm mới
                     st.rerun()
