@@ -249,7 +249,7 @@ if st.session_state.system_auth and not st.session_state.logged_in:
     with col_logo2:
         if os.path.exists("logo.png"): st.image("logo.png", width=240)
     st.markdown("### 🛰️ CHỌN QUYỀN TRUY CẬP")
-    st.markdown("<p style='color:#33ff33; opacity:0.7;'>Kết nối an toàn. Chọn chế độ tác chiến:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#33ff33; opacity:0.7;'>Kết nối an toàn. Chọn chế độ truy cập:</p>", unsafe_allow_html=True)
     
     if st.button("👁️ TRUY CẬP KHÁCH (CHỈ XEM)", use_container_width=True):
         st.session_state.role = "Guest"
