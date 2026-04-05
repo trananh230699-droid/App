@@ -482,7 +482,7 @@ if st.session_state.urgent_filter:
     df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 
 # ------------------------------------------
-# THỐNG KÊ (ĐÃ XÓA THẺ <BR> THỪA VÀ TỐI ƯU KHOẢNG CÁCH CSS)
+# THỐNG KÊ
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -512,34 +512,6 @@ else:
         st.session_state.urgent_filter = False
         st.rerun()
 
-st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A) BỘ DỮ LIỆU GỐC")
-c_s1, c_s2 = st.columns([1.5, 2])
-
-sort_opts = [
-    "Mặc định (Không sắp xếp)", "Tên công việc", "Kỳ báo cáo", 
-    "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
-]
-with c_s1:
-    sort_col = st.selectbox("Sắp xếp theo:", sort_opts)
-with c_s2:
-    sort_asc = st.radio("Thứ tự:", ["A-Z (Tăng dần)", "Z-A (Giảm dần)"], horizontal=True)
-
-col_map = {
-    "Tên công việc": "TEN_BAO_CAO", 
-    "Kỳ báo cáo": "KY_BAO_CAO", 
-    "Hạn chót": "DEADLINE", 
-    "Tình trạng": "TINH_TRANG", 
-    "Đơn vị yêu cầu báo cáo": "DON_VI_YEU_CAU",
-    "Lĩnh vực": "LINH_VUC"
-}
-
-if sort_col != "Mặc định (Không sắp xếp)":
-    is_asc = True if sort_asc == "A-Z (Tăng dần)" else False
-    df_filtered = df_filtered.sort_values(
-        by=col_map[sort_col], 
-        ascending=is_asc, 
-        na_position='last'
-    )
 df_filtered = df_filtered.reset_index(drop=True)
 
 # LÕI ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
