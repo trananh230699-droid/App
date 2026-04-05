@@ -369,7 +369,7 @@ with c_btn_top3:
         st.query_params.clear(); st.session_state.clear(); st.rerun()
 
 # BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP (MODAL POPUP)
-@st.dialog("🚨 BẢNG THÔNG BÁO KHẨN CẤP")
+@st.dialog("🚨 BẢNG THÔNG BÁO QUAN TRỌNG")
 def show_urgent_dialog(df_urg):
     st.error(f"Đồng chí có **{len(df_urg)}** công việc đến hạn hoặc trễ hạn cần xử lý gấp!")
     for _, ur_row in df_urg.iterrows():
@@ -382,21 +382,21 @@ df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_T
 
 if not df_urgent_notify.empty:
     if not st.session_state.reminder_shown:
-        st.toast(f"🚨 CẢNH BÁO: Có {len(df_urgent_notify)} báo cáo khẩn cấp cần xử lý ngay!", icon="🔔"); st.session_state.reminder_shown = True
+        st.toast(f"🚨 CẢNH BÁO: Có {len(df_urgent_notify)} báo cáo GẤP cần xử lý ngay!", icon="🔔"); st.session_state.reminder_shown = True
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
     # ĐÃ SỬA LỖI: SỬ DỤNG BUTTON CHỚP NHÁY ĐỂ TRÁNH LỖI FONT VÀ BẢO ĐẢM HOẠT ĐỘNG 100%
     if not st.session_state.show_urgent_details:
         st.markdown('<span id="show-details-btn"></span>', unsafe_allow_html=True)
-        if st.button("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP", use_container_width=True):
+        if st.button("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC CẦN LÀM GẤP", use_container_width=True):
             st.session_state.show_urgent_details = True
             st.rerun()
     else:
-        if st.button("❌ ĐÓNG DANH SÁCH CHI TIẾT KHẨN CẤP", use_container_width=True):
+        if st.button("❌ ĐÓNG DANH SÁCH NÀY", use_container_width=True):
             st.session_state.show_urgent_details = False
             st.rerun()
-        st.error(f"🔔 **DANH SÁCH {len(df_urgent_notify)} VIỆC KHẨN CẤP:**")
+        st.error(f"🔔 **DANH SÁCH {len(df_urgent_notify)} VIỆC CẦN LÀM GẤP:**")
         for _, ur_row in df_urgent_notify.iterrows():
             ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
             st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
@@ -576,7 +576,7 @@ with tab_interact:
         st.dataframe(df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]], use_container_width=True, hide_index=True, column_config=g_cols)
 
 with tab_wrap:
-    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng, tự động IN ĐẬM VÀ BÔI ĐỎ các việc khẩn cấp.")
+    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng, tự động IN ĐẬM VÀ BÔI ĐỎ các việc GẤP.")
     st.table(styled_display)
     
 st.markdown('</div>', unsafe_allow_html=True)
