@@ -96,7 +96,7 @@ css_code_hacker = """
 css_code_work = """
     <style>
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
     .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
     .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
@@ -159,7 +159,7 @@ if not st.session_state.system_auth:
             html_table = '<table class="log-table"><tr><th>THỜI GIAN</th><th>IP TRUY CẬP</th><th>TRẠNG THÁI</th></tr>'
             for log in reversed(logs):
                 css_class = "stat-ok" if log["status"] == "SUCCESS" else "stat-fail"
-                html_table += f'<tr><td>{log["time"]}</td><td>{log["ip"]}</td><td class="{css_class}">{log["status"]}</td></tr>'
+                html_table += f'<tr><td>{log["time"]}</td><td>{log["ip"]}</td><td class="{css_class}">{logstatus"]}</td></tr>'
             html_table += '</table>'
             st.markdown(html_table, unsafe_allow_html=True)
 
@@ -251,7 +251,7 @@ today = pd.Timestamp(get_vn_time().date())
 def phan_loai(row):
     tt = str(row.get('TINH_TRANG', '')).strip()
     
-    # 1. NIÊM PHONG VĨNH VIỄN nều dòng dữ liệu đã là "Đã hoàn thành" (bỏ qua mọi phép tính ngày tháng)
+    # 1. NIÊM PHONG VĨNH VIỄN nều dòng dữ liệu đã là "Đã hoàn thành"
     if "🟢" in tt or "hoàn thành" in tt.lower():
         return "🟢 Đã hoàn thành"
         
@@ -342,7 +342,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ LỌC
+# HEADER & HEADER TOOLS (CHUYỂN TỪ SIDEBAR SANG ĐÂY ĐỂ TỐI ƯU MOBILE)
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -357,14 +357,23 @@ with col_r:
     </div>
     """, unsafe_allow_html=True)
 
-if st.sidebar.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary"):
-    st.query_params.clear()
-    st.session_state.clear()
-    st.rerun()
-
-with st.sidebar:
-    st.header("🔍 BỘ LỌC TÌM KIẾM")
-    txt_search = st.text_input("Tên báo cáo:")
+# Khung Expander chứa Công cụ & Lọc (Hiển thị hoàn hảo trên Mobile)
+with st.expander("⚙️ BỘ LỌC TÌM KIẾM & CÔNG CỤ HỆ THỐNG (Bấm để mở)", expanded=False):
+    c_tool1, c_tool2 = st.columns(2)
+    with c_tool1:
+        if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
+            st.cache_data.clear()
+            st.session_state.df_master = load_data()
+            st.session_state.editor_key = str(uuid.uuid4())
+            st.rerun()
+    with c_tool2:
+        if st.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary", use_container_width=True):
+            st.query_params.clear()
+            st.session_state.clear()
+            st.rerun()
+            
+    st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+    txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
     
     k_list = st.session_state.df_master['KY_BAO_CAO'].unique().tolist()
     all_k = set([k for ky in k_list if isinstance(ky, str) for k in ky.split(", ")])
@@ -375,32 +384,21 @@ with st.sidebar:
         "Tháng 07", "Tháng 08", "Tháng 09", "Quý 3", 
         "Tháng 10", "Tháng 11", "Tháng 12", "Tổng kết năm"
     ]
-    
     def sort_key(k):
-        if k in ordered_periods:
-            return (0, ordered_periods.index(k))
+        if k in ordered_periods: return (0, ordered_periods.index(k))
         return (1, k)
-        
     sorted_all_k = sorted(list(all_k), key=sort_key)
     
-    sel_ky = st.multiselect("Lọc Kỳ:", sorted_all_k, default=sorted_all_k)
-    
-    tt_opts = ["🔴 Trễ hạn", "🔴 Cần thực hiện ngay", "⏳ Đang thực hiện", "🟢 Đã hoàn thành"]
-    sel_tt = st.multiselect("Lọc Tình trạng:", tt_opts, default=tt_opts)
-
-    dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
-    sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
-    
-    lv_opts = st.session_state.df_master['LINH_VUC'].unique().tolist()
-    sel_lv = st.multiselect("Lĩnh vực:", lv_opts, default=lv_opts)
-    
-    st.divider()
-    # CAN THIỆP CHÍNH KHẮC PHỤC LỖI NÚT "LÀM MỚI DỮ LIỆU"
-    if st.button("🔄 Làm mới dữ liệu", use_container_width=True):
-        st.cache_data.clear() # Đảm bảo xóa sạch bộ nhớ đệm kết nối
-        st.session_state.df_master = load_data() # Kéo dữ liệu mới
-        st.session_state.editor_key = str(uuid.uuid4()) # Ép bảng tương tác reset lại giao diện hiển thị
-        st.rerun()
+    c_f1, c_f2 = st.columns(2)
+    with c_f1:
+        sel_ky = st.multiselect("Lọc Kỳ:", sorted_all_k, default=sorted_all_k)
+        tt_opts = ["🔴 Trễ hạn", "🔴 Cần thực hiện ngay", "⏳ Đang thực hiện", "🟢 Đã hoàn thành"]
+        sel_tt = st.multiselect("Lọc Tình trạng:", tt_opts, default=tt_opts)
+    with c_f2:
+        dv_opts = st.session_state.df_master['DON_VI_YEU_CAU'].unique().tolist()
+        sel_dv = st.multiselect("Đơn vị yêu cầu:", dv_opts, default=dv_opts)
+        lv_opts = st.session_state.df_master['LINH_VUC'].unique().tolist()
+        sel_lv = st.multiselect("Lĩnh vực:", lv_opts, default=lv_opts)
 
 def chk_ky(row_ky):
     if not sel_ky: return False
@@ -468,7 +466,7 @@ with col_main:
         )
     df_filtered = df_filtered.reset_index(drop=True)
     
-    # GIỮ NGUYÊN BẢN 100%: Ép kiểu dữ liệu gốc để tắt lỗi Mixed Type của Arrow, mở khóa click tiêu đề
+    # Ép kiểu dữ liệu gốc để tắt lỗi Mixed Type của Arrow, mở khóa click tiêu đề
     df_interact = df_filtered.copy()
     df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
     df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
@@ -529,6 +527,7 @@ with col_main:
                                 if col != "🗑️ Xóa":
                                     st.session_state.df_master.at[m_idx, col] = val
                             
+                            # CẤU TRÚC LÕI: Nếu Admin không đổi trực tiếp cột Tình trạng, thì ta mới chạy auto tính toán đè lên.
                             if "TINH_TRANG" not in changes:
                                 updated_row = st.session_state.df_master.loc[m_idx]
                                 st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
