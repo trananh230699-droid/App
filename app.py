@@ -515,10 +515,16 @@ mask = (
     st.session_state.df_master['DON_VI_YEU_CAU'].isin(sel_dv) &
     st.session_state.df_master['LINH_VUC'].isin(sel_lv)
 )
-df_filtered = st.session_state.df_master[mask].copy()
+df_base_filtered = st.session_state.df_master[mask].copy()
+
+# Lọc Mức Độ Khẩn Cấp (Nút Bấm)
+if st.session_state.urgent_filter:
+    df_filtered = df_base_filtered[df_base_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
+else:
+    df_filtered = df_base_filtered.copy()
 
 # ==========================================
-# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT)
+# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT) - FIX LỖI KHÔNG ĐỒNG BỘ LỌC
 # ==========================================
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
 if pd.api.types.is_datetime64_any_dtype(df_display['DEADLINE']):
@@ -529,16 +535,12 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
     subset=['Tên công việc'], **{'white-space': 'pre-wrap', 'min-width': '400px'}
 )
 
-# Lọc Mức Độ Khẩn Cấp Cấp Độ Toàn Cục
-if st.session_state.urgent_filter:
-    df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
-
 # ------------------------------------------
-# THỐNG KÊ (ĐÃ XÓA THẺ <BR> THỪA VÀ TỐI ƯU KHOẢNG CÁCH CSS, THÊM CẢNH BÁO CHỚP NHÁY)
+# THỐNG KÊ (Sử dụng df_base_filtered để giữ nguyên tỷ lệ tổng thể của Kỳ báo cáo)
 # ------------------------------------------
-total = len(df_filtered)
-done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
-late = len(df_filtered[df_filtered['TINH_TRANG'] == "🔴 Trễ hạn"])
+total = len(df_base_filtered)
+done = len(df_base_filtered[df_base_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
+late = len(df_base_filtered[df_base_filtered['TINH_TRANG'] == "🔴 Trễ hạn"])
 tl_ht = round(done/total*100) if total > 0 else 0
 
 c_m1, c_m2, c_m3 = st.columns(3)
@@ -552,10 +554,9 @@ with c_m3:
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
 # ------------------------------------------
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng
 st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
-# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY MÀU ĐỎ CẢNH BÁO)
+# NÚT BẤM XEM NGAY VIỆC CẦN LÀM
 if not st.session_state.urgent_filter:
     st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
     if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
@@ -590,7 +591,6 @@ with tab_interact:
         st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
         df_interact.insert(0, "🗑️ Xóa", False)
 
-        # ÉP WIDTH BẰNG SỐ PIXEL CỐ ĐỊNH, NHƯỜNG TỐI ĐA CHO CỘT TÊN CÔNG VIỆC
         c_cols = {
             "_ID": None, 
             "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width=50),
@@ -653,7 +653,7 @@ with tab_interact:
                 st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
                 
                 st.cache_data.clear()
-                st.session_state.alert_closed = False # Reset cảnh báo khi có cập nhật mới
+                st.session_state.alert_closed = False 
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
@@ -679,7 +679,7 @@ with tab_wrap:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# BIỂU ĐỒ & LỊCH 
+# BIỂU ĐỒ & LỊCH (Sử dụng df_base_filtered)
 # ------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 col_chart, col_cal = st.columns(2)
@@ -691,7 +691,9 @@ with col_chart:
     mau_bd = {"🟢 Đã hoàn thành": "#10B981", "🔴 Trễ hạn": "#EF4444", "⏳ Đang thực hiện": "#3B82F6", "🔴 Cần thực hiện ngay": "#F59E0B"}
     
     if total > 0:
-        fig = px.pie(df_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
+        fig = px.pie(df_base_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
+        # Đã cập nhật để hiển thị phần trăm rõ ràng lên biểu đồ
+        fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -734,7 +736,7 @@ with col_cal:
     
     now_dt = get_vn_time()
     cal = calendar.monthcalendar(now_dt.year, now_dt.month)
-    df_cx = df_filtered[df_filtered['TINH_TRANG'] != "🟢 Đã hoàn thành"].copy()
+    df_cx = df_base_filtered[df_base_filtered['TINH_TRANG'] != "🟢 Đã hoàn thành"].copy()
     
     df_cx_thang = df_cx[(df_cx['DEADLINE'].dt.month == now_dt.month) & (df_cx['DEADLINE'].dt.year == now_dt.year)]
     
@@ -836,5 +838,5 @@ if st.session_state.role == "Admin":
                         [st.session_state.df_master, n_df], 
                         ignore_index=True
                     )
-                    st.session_state.alert_closed = False # Khôi phục cảnh báo khi có cập nhật mới
+                    st.session_state.alert_closed = False 
                     st.rerun()
