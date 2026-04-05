@@ -62,6 +62,8 @@ if "role" not in st.session_state:
     st.session_state.role = query_role if query_role in ["Admin", "Guest"] else None
 if "urgent_filter" not in st.session_state:
     st.session_state.urgent_filter = False
+if "reminder_shown" not in st.session_state:
+    st.session_state.reminder_shown = False
 
 # ==========================================
 # GIAO DIỆN CSS: CHIA 3 GIAI ĐOẠN ĐỘC LẬP
@@ -124,7 +126,7 @@ css_code_work = """
     .stTabs [aria-selected="true"] { background-color: #0078D7; color: white !important; }
 
     /* ========================================= */
-    /* TỐI ƯU KHU VỰC THỐNG KÊ (METRICS) SIÊU GỌN */
+    /* TỐI ƯU KHU VỰC THỐNG KÊ (METRICS) SIÊU GỌN & CHỚP NHÁY */
     /* ========================================= */
     div[data-testid="metric-container"] {
         padding: 5px 10px !important;
@@ -139,9 +141,22 @@ css_code_work = """
         align-items: center;
         justify-content: center;
     }
-    [data-testid="stMetricLabel"] { font-size: 11px !important; font-weight: bold; margin-bottom: -8px !important; color: #555;}
+    [data-testid="stMetricLabel"] { font-size: 11px !important; font-weight: bold; margin-bottom: -10px !important; color: #555;}
     [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #005B9F;}
-    [data-testid="stMetricDelta"] { font-size: 10px !important; display: none;} /* Ẩn Delta thừa */
+    
+    /* Hiệu ứng chớp nháy cho Delta (Chữ Cảnh báo) */
+    [data-testid="stMetricDelta"] { 
+        font-size: 12px !important; 
+        font-weight: 900 !important;
+        margin-top: -5px !important;
+        animation: blink-warning 0.8s infinite alternate !important;
+    }
+    [data-testid="stMetricDelta"] svg { display: none !important; } /* Ẩn mũi tên mặc định để gọn hơn */
+    
+    @keyframes blink-warning {
+        0% { opacity: 1; text-shadow: 0 0 2px rgba(255,51,51,0.5); }
+        100% { opacity: 0.3; text-shadow: 0 0 8px rgba(255,0,0,0.8); }
+    }
 
     /* ========================================= */
     /* HIỆU ỨNG NÚT BẤM XEM NGAY VIỆC CẦN LÀM   */
@@ -427,6 +442,21 @@ with c_btn_top2:
         st.session_state.clear()
         st.rerun()
 
+# ==========================================
+# BẢNG THÔNG BÁO NHẮC VIỆC KHẨN CẤP (NỔI BẬT)
+# ==========================================
+df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
+if not df_urgent_notify.empty:
+    if not st.session_state.reminder_shown:
+        st.toast(f"🚨 CẢNH BÁO: Có {len(df_urgent_notify)} báo cáo khẩn cấp cần xử lý ngay!", icon="🔔")
+        st.session_state.reminder_shown = True
+        
+    st.error(f"🔔 **BẢNG THÔNG BÁO NHẮC VIỆC:** Đồng chí có **{len(df_urgent_notify)}** công việc đến hạn hoặc trễ hạn cần xử lý gấp!")
+    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=True):
+        for _, ur_row in df_urgent_notify.iterrows():
+            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
+            st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
+
 with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
     txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
     
@@ -469,21 +499,6 @@ mask = (
 df_filtered = st.session_state.df_master[mask].copy()
 
 # ==========================================
-# CẢNH BÁO NHẮC VIỆC NGAY SAU ĐĂNG NHẬP
-# ==========================================
-df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
-if not df_urgent_notify.empty:
-    st.markdown(f'''
-        <div style="background-color: #fff4f4; border-left: 5px solid #ff3333; padding: 12px 15px; border-radius: 5px; margin-top: 5px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <p style="margin: 0; font-size: 15px; color: #b30000; font-weight: bold;">🔔 CẢNH BÁO: <span style="color:#333; font-weight:normal;">Đồng chí có <b>{len(df_urgent_notify)}</b> báo cáo cần xử lý ngay!</span></p>
-        </div>
-    ''', unsafe_allow_html=True)
-    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT DANH SÁCH KHẨN CẤP", expanded=False):
-        for _, ur_row in df_urgent_notify.iterrows():
-            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
-            st.markdown(f"▪️ {ur_row['TINH_TRANG']} - **{ur_row['TEN_BAO_CAO']}** (Hạn: `{ur_han}`)")
-
-# ==========================================
 # CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT)
 # ==========================================
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
@@ -500,7 +515,7 @@ if st.session_state.urgent_filter:
     df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 
 # ------------------------------------------
-# THỐNG KÊ SIÊU GỌN 
+# THỐNG KÊ (ĐÃ XÓA THẺ <BR> THỪA VÀ TỐI ƯU KHOẢNG CÁCH CSS, THÊM CẢNH BÁO CHỚP NHÁY)
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -510,7 +525,10 @@ tl_ht = round(done/total*100) if total > 0 else 0
 c_m1, c_m2, c_m3 = st.columns(3)
 with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
 with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
-with c_m3: st.metric("TRỄ HẠN", late)
+with c_m3: 
+    # Logic thông minh: Chỉ hiện nhấp nháy Cảnh báo nếu thực sự có việc Trễ hạn
+    delta_text = "🚨 CẢNH BÁO" if late > 0 else ""
+    st.metric("TRỄ HẠN", late, delta=delta_text, delta_color="inverse" if late > 0 else "normal")
 
 # ------------------------------------------
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
