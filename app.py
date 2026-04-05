@@ -67,7 +67,7 @@ if "role" not in st.session_state:
 css_code_login = """
     <style>
     /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
     
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
@@ -87,7 +87,7 @@ css_code_login = """
 
 css_code_hacker = """
     <style>
-    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
     .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
     .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
@@ -100,18 +100,18 @@ css_code_hacker = """
 css_code_work = """
     <style>
     /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
-    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+    .block-container { padding-top: 1rem !important; padding-bottom: 1rem !important; margin-top: -1.5rem !important;}
     
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
-    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
-    .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; }
+    .codx-card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; margin-top: 5px;}
     .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
     
     /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML */
-    .stTable { background-color: white; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+    .stTable { background-color: white; border-radius: 5px; overflow: hidden; margin-top: 5px; }
     .stTable table { width: 100% !important; border-collapse: collapse; }
     .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; }
     .stTable th { background-color: #f8f9fa; font-weight: bold; }
@@ -131,7 +131,7 @@ css_code_work = """
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         border: 1px solid #EAECEF;
         text-align: center;
-        margin-bottom: 15px;
+        margin-bottom: 5px !important;
     }
     div[data-testid="metric-container"] > div {
         align-items: center;
@@ -295,14 +295,12 @@ def phan_loai(row):
         
     return "⏳ Đang thực hiện"
 
-def get_col(df, keywords, fallback_idx):
+def safe_get_col(df, possible_names):
     for col in df.columns:
-        c_str = str(col).lower()
-        c_norm = unicodedata.normalize('NFKD', c_str).encode('ascii', 'ignore').decode('ascii')
-        for kw in keywords:
-            if kw in c_str or kw in c_norm:
+        c_norm = unicodedata.normalize('NFKD', str(col).lower()).encode('ascii', 'ignore').decode('ascii')
+        for name in possible_names:
+            if name in c_norm:
                 return col
-    if fallback_idx < len(df.columns): return df.columns[fallback_idx]
     return None
 
 def style_status(val):
@@ -337,13 +335,14 @@ def load_data():
                 df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
         extracted = {
-            "TEN_BAO_CAO": df_raw["Tên công việc"] if "Tên công việc" in df_raw.columns else df_raw[get_col(df_raw, ["ten", "cong viec"], 1)],
-            "KY_BAO_CAO": df_raw["Kỳ báo cáo"] if "Kỳ báo cáo" in df_raw.columns else df_raw[get_col(df_raw, ["ky", "thang", "quy"], 2)],
-            "DEADLINE": df_raw["Hạn chót"] if "Hạn chót" in df_raw.columns else df_raw[get_col(df_raw, ["han", "deadline"], 3)],
-            "TINH_TRANG": df_raw["Tình trạng"] if "Tình trạng" in df_raw.columns else df_raw[get_col(df_raw, ["tinh trang", "trang thai"], 4)],
-            "DON_VI_YEU_CAU": df_raw["Đơn vị yêu cầu báo cáo"] if "Đơn vị yêu cầu báo cáo" in df_raw.columns else df_raw[get_col(df_raw, ["don vi", "yeu cau"], 5)],
-            "LINH_VUC": df_raw["Lĩnh vực"] if "Lĩnh vực" in df_raw.columns else df_raw[get_col(df_raw, ["linh vuc"], 6)]
+            "TEN_BAO_CAO": df_raw["Tên công việc"] if "Tên công việc" in df_raw.columns else df_raw[safe_get_col(df_raw, ["ten cong viec", "ten bao cao", "noi dung"]) or df_raw.columns[1]],
+            "KY_BAO_CAO": df_raw["Kỳ báo cáo"] if "Kỳ báo cáo" in df_raw.columns else df_raw[safe_get_col(df_raw, ["ky", "thang", "quy"]) or df_raw.columns[2]],
+            "DEADLINE": df_raw["Hạn chót"] if "Hạn chót" in df_raw.columns else df_raw[safe_get_col(df_raw, ["han chot", "deadline"]) or df_raw.columns[3]],
+            "TINH_TRANG": df_raw["Tình trạng"] if "Tình trạng" in df_raw.columns else df_raw[safe_get_col(df_raw, ["tinh trang", "trang thai"]) or df_raw.columns[4]],
+            "DON_VI_YEU_CAU": df_raw["Đơn vị yêu cầu báo cáo"] if "Đơn vị yêu cầu báo cáo" in df_raw.columns else df_raw[safe_get_col(df_raw, ["don vi", "yeu cau"]) or df_raw.columns[5]],
+            "LINH_VUC": df_raw["Lĩnh vực"] if "Lĩnh vực" in df_raw.columns else df_raw[safe_get_col(df_raw, ["linh vuc"]) or df_raw.columns[6]]
         }
+        
         df = pd.DataFrame(extracted)
         
         df = df.dropna(subset=['TEN_BAO_CAO'])
@@ -449,7 +448,7 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
 )
 
 # ------------------------------------------
-# THỐNG KÊ (ĐÃ ĐƯỢC TỐI ƯU CSS THU GỌN BÊN TRÊN)
+# THỐNG KÊ (ĐÃ XÓA THẺ <BR> THỪA VÀ TỐI ƯU KHOẢNG CÁCH CSS)
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
