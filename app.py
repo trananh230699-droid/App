@@ -60,6 +60,8 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = (query_role in ["Admin", "Guest"])
 if "role" not in st.session_state:
     st.session_state.role = query_role if query_role in ["Admin", "Guest"] else None
+if "urgent_filter" not in st.session_state:
+    st.session_state.urgent_filter = False
 
 # ==========================================
 # GIAO DIỆN CSS: CHIA 3 GIAI ĐOẠN ĐỘC LẬP
@@ -140,6 +142,35 @@ css_code_work = """
     [data-testid="stMetricLabel"] { font-size: 12px !important; font-weight: bold; margin-bottom: -5px !important;}
     [data-testid="stMetricValue"] { font-size: 22px !important; line-height: 1.2 !important; }
     [data-testid="stMetricDelta"] { font-size: 11px !important; }
+
+    /* ========================================= */
+    /* HIỆU ỨNG NÚT BẤM XEM NGAY VIỆC CẦN LÀM   */
+    /* ========================================= */
+    div:has(> span#urgent-btn-target) + div button {
+        background: linear-gradient(135deg, #ff3333, #b30000) !important;
+        color: white !important;
+        font-weight: 900 !important;
+        font-size: 16px !important;
+        border: 2px solid #ffb3b3 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.5) !important;
+        animation: pulse-urgency 1.5s infinite !important;
+        margin-bottom: 10px !important;
+    }
+    div:has(> span#urgent-btn-clear) + div button {
+        background: linear-gradient(135deg, #4CAF50, #2E7D32) !important;
+        color: white !important;
+        font-weight: bold !important;
+        border: 2px solid #c8e6c9 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 10px rgba(76, 175, 80, 0.4) !important;
+        margin-bottom: 10px !important;
+    }
+    @keyframes pulse-urgency {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+        50% { transform: scale(1.01); box-shadow: 0 0 0 12px rgba(255, 0, 0, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+    }
 
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
     @media screen and (max-width: 768px) {
@@ -342,7 +373,6 @@ def load_data():
             "DON_VI_YEU_CAU": df_raw["Đơn vị yêu cầu báo cáo"] if "Đơn vị yêu cầu báo cáo" in df_raw.columns else df_raw[safe_get_col(df_raw, ["don vi", "yeu cau"]) or df_raw.columns[5]],
             "LINH_VUC": df_raw["Lĩnh vực"] if "Lĩnh vực" in df_raw.columns else df_raw[safe_get_col(df_raw, ["linh vuc"]) or df_raw.columns[6]]
         }
-        
         df = pd.DataFrame(extracted)
         
         df = df.dropna(subset=['TEN_BAO_CAO'])
@@ -447,6 +477,10 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
     subset=['Tên công việc'], **{'white-space': 'pre-wrap', 'min-width': '400px'}
 )
 
+# Lọc Mức Độ Khẩn Cấp Cấp Độ Toàn Cục
+if st.session_state.urgent_filter:
+    df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
+
 # ------------------------------------------
 # THỐNG KÊ (ĐÃ XÓA THẺ <BR> THỪA VÀ TỐI ƯU KHOẢNG CÁCH CSS)
 # ------------------------------------------
@@ -465,6 +499,18 @@ with c_m3: st.metric("TRỄ HẠN", late, delta_color="inverse", delta="Cảnh b
 # ------------------------------------------
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
 st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
+
+# NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY)
+if not st.session_state.urgent_filter:
+    st.markdown('<span id="urgent-btn-target"></span>', unsafe_allow_html=True)
+    if st.button("🚨 XEM NGAY NHỮNG VIỆC CẦN LÀM", use_container_width=True):
+        st.session_state.urgent_filter = True
+        st.rerun()
+else:
+    st.markdown('<span id="urgent-btn-clear"></span>', unsafe_allow_html=True)
+    if st.button("✅ ĐANG BẬT LỌC GẤP - BẤM ĐỂ HIỂN THỊ TẤT CẢ", use_container_width=True):
+        st.session_state.urgent_filter = False
+        st.rerun()
 
 st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A) BỘ DỮ LIỆU GỐC")
 c_s1, c_s2 = st.columns([1.5, 2])
@@ -511,21 +557,22 @@ df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].
 tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
 
 with tab_interact:
-    st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. **Nhấp đúp chuột vào ô Tên công việc** để xem toàn bộ nội dung và chỉnh sửa.")
+    st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề để sắp xếp. **Nhấp đúp chuột vào ô Tên công việc** để xem toàn bộ nội dung và chỉnh sửa.")
     
     if st.session_state.role == "Admin":
         st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
         df_interact.insert(0, "🗑️ Xóa", False)
 
+        # ÉP WIDTH BẰNG SỐ PIXEL CỐ ĐỊNH, NHƯỜNG TỐI ĐA CHO CỘT TÊN CÔNG VIỆC
         c_cols = {
             "_ID": None, 
-            "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
+            "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width=50),
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width="small"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width="small"),
-            "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width="small"),
-            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="small")
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width=95), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width=95),
+            "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width=165),
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width=110),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width=110)
         }
 
         edited_df = st.data_editor(
@@ -586,11 +633,11 @@ with tab_interact:
     else:
         g_cols = {
             "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width="small"), 
-            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width="small"),
-            "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width="medium"),
-            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width="small"),
-            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="small")
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo", width=95), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY", width=95),
+            "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width=165),
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị", width=110),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width=110)
         }
         st.dataframe(
             df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]],
