@@ -50,10 +50,9 @@ def add_log(status):
         json.dump(logs[-5:], f)
 
 # ==========================================
-# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI CHỐNG NÚT BACK)
+# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI CHỐNG NÚT BACK & F5)
 # ==========================================
 def check_auth_status():
-    # Chỉ lấy quyền từ session_state, hoàn toàn phớt lờ URL để chống ấn nút Back
     if "system_auth" not in st.session_state:
         st.session_state.system_auth = False
     if "logged_in" not in st.session_state:
@@ -66,7 +65,6 @@ def check_auth_status():
         st.session_state.reminder_shown = False
     if "alert_closed" not in st.session_state:
         st.session_state.alert_closed = False
-    # Thêm biến điều khiển danh sách khẩn cấp
     if "show_urgent_details" not in st.session_state:
         st.session_state.show_urgent_details = False
 
@@ -77,9 +75,7 @@ check_auth_status()
 # ==========================================
 css_code_login = """
     <style>
-    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra - CĂN CHỈNH VỪA ĐỦ ĐỂ KHÔNG BỊ CẮT CHỮ */
     .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
-    
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
     .stTextInput input { background-color: #ffffff !important; color: #333 !important; border: 1px solid #ccc !important; font-family: sans-serif !important; font-size: 14px !important; letter-spacing: normal; text-align: left; border-radius: 5px;}
@@ -376,8 +372,14 @@ with c_btn_top3:
 def show_urgent_dialog(df_urg):
     st.error(f"Đồng chí có **{len(df_urg)}** công việc đến hạn hoặc trễ hạn cần xử lý gấp!")
     for _, ur_row in df_urg.iterrows():
-        ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
-        st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
+        if pd.notnull(ur_row['DEADLINE']):
+            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y')
+            days_diff = (ur_row['DEADLINE'] - today).days
+            badge = f"<span style='color: #cc0000; font-weight: bold; border: 1.5px solid #cc0000; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 13px;'>Trễ {-days_diff} ngày</span>" if days_diff < 0 else f"<span style='color: #cc0000; font-weight: bold; border: 1.5px solid #cc0000; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 13px;'>Còn {days_diff} ngày</span>"
+            ur_han_display = f"{ur_han} {badge}"
+        else:
+            ur_han_display = "Chưa có"
+        st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han_display})*", unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("❌ Đã hiểu - Đóng bảng thông báo", use_container_width=True): st.session_state.alert_closed = True; st.rerun()
 
@@ -400,8 +402,14 @@ if not df_urgent_notify.empty:
             st.rerun()
         st.error(f"🔔 **DANH SÁCH {len(df_urgent_notify)} VIỆC CẦN LÀM GẤP:**")
         for _, ur_row in df_urgent_notify.iterrows():
-            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
-            st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
+            if pd.notnull(ur_row['DEADLINE']):
+                ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y')
+                days_diff = (ur_row['DEADLINE'] - today).days
+                badge = f"<span style='color: #cc0000; font-weight: bold; border: 1.5px solid #cc0000; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 13px;'>Trễ {-days_diff} ngày</span>" if days_diff < 0 else f"<span style='color: #cc0000; font-weight: bold; border: 1.5px solid #cc0000; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 13px;'>Còn {days_diff} ngày</span>"
+                ur_han_display = f"{ur_han} {badge}"
+            else:
+                ur_han_display = "Chưa có"
+            st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han_display})*", unsafe_allow_html=True)
 
 # BỘ LỌC
 with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
@@ -511,7 +519,7 @@ df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].
 tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Đã In Đậm & Bôi Đỏ Việc Gấp)"])
 
 with tab_interact:
-    st.info("💡 **Lưu ý:** Đ/c có thể xem chi tiết hơn tại Tab **[Bảng Chi Tiết]** bên cạnh.")
+    st.info("💡 **Lưu ý:** Do giới hạn đồ họa Canvas, Bảng Tương Tác không thể bôi đỏ chữ. Đồng chí vui lòng xem màu đỏ tại Tab **[Bảng Chi Tiết]** bên cạnh.")
     
     if st.session_state.role == "Admin":
         st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
@@ -651,7 +659,7 @@ if st.session_state.role == "Admin":
                 f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
             with c_f2: 
                 f_d = st.date_input("Hạn chót", value=get_vn_time().date())
-                f_override = st.checkbox("Chọn ☑️ vào ô bên trái để ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
+                f_override = st.checkbox("☑️ Ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
             with c_f3: f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
             
             if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
