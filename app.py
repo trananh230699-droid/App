@@ -16,7 +16,7 @@ from streamlit_gsheets import GSheetsConnection
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
-    page_title="Hệ thống Quản trị Báo cáo - CAP An Khánh", 
+    page_title="Hệ thống Quản trị - CAP An Khánh", 
     page_icon="☑️", 
     layout="wide"
 )
@@ -190,6 +190,27 @@ css_code_work = """
     @keyframes pulse-urgency {
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8); }
         100% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(255, 51, 51, 0); }
+    }
+
+    /* ========================================= */
+    /* HIỆU ỨNG CHỚP NHÁY EXPANDER XEM CHI TIẾT  */
+    /* ========================================= */
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stElementContainer"] summary,
+    div.element-container:has(#urgent-expander-target) + div.element-container summary {
+        background-color: #fff4f4 !important;
+        border: 2px solid #ff3333 !important;
+        border-radius: 8px !important;
+        animation: pulse-urgency-expander 1s infinite alternate !important;
+        margin-bottom: 10px;
+    }
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stElementContainer"] summary p,
+    div.element-container:has(#urgent-expander-target) + div.element-container summary p {
+        color: #b30000 !important;
+        font-weight: 900 !important;
+    }
+    @keyframes pulse-urgency-expander {
+        0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); }
+        100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
     }
 
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
@@ -431,7 +452,8 @@ with col_r:
     </div>
     """, unsafe_allow_html=True)
 
-c_btn_top1, c_btn_top2 = st.columns(2)
+# ĐÃ TÁCH THÀNH 3 NÚT NHƯ YÊU CẦU
+c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
     if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
         st.cache_data.clear()
@@ -440,7 +462,13 @@ with c_btn_top1:
         st.session_state.alert_closed = False 
         st.rerun()
 with c_btn_top2:
-    if st.button("🚪 THOÁT / ĐĂNG XUẤT", type="primary", use_container_width=True):
+    if st.button("🔙 THOÁT QUYỀN", use_container_width=True):
+        st.query_params.clear()
+        st.session_state.logged_in = False
+        st.session_state.role = None
+        st.rerun()
+with c_btn_top3:
+    if st.button("🚪 ĐĂNG XUẤT", type="primary", use_container_width=True):
         st.query_params.clear()
         st.session_state.clear()
         st.rerun()
@@ -469,6 +497,8 @@ if not df_urgent_notify.empty:
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
+    # ĐÃ THÊM MÃ ĐÁNH DẤU CHỚP NHÁY VÀO TRƯỚC EXPANDER NÀY
+    st.markdown('<span id="urgent-expander-target"></span>', unsafe_allow_html=True)
     with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
         for _, ur_row in df_urgent_notify.iterrows():
             ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
@@ -676,7 +706,7 @@ with tab_wrap:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# BIỂU ĐỒ & LỊCH 
+# BIỂU ĐỒ & LỊCH (Sử dụng df_base_filtered)
 # ------------------------------------------
 st.markdown("<br>", unsafe_allow_html=True)
 col_chart, col_cal = st.columns(2)
@@ -689,6 +719,7 @@ with col_chart:
     
     if total > 0:
         fig = px.pie(df_base_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
+        # Đã cập nhật để hiển thị phần trăm rõ ràng lên biểu đồ
         fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
