@@ -101,16 +101,18 @@ check_auth_status()
 # ==========================================
 css_code_login = """
     <style>
+    * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; text-rendering: optimizeLegibility !important; }
     .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
-    .stTextInput input { background-color: #ffffff !important; color: #333 !important; border: 1px solid #ccc !important; font-family: sans-serif !important; font-size: 14px !important; letter-spacing: normal; text-align: left; border-radius: 5px;}
+    .stTextInput input { background-color: #ffffff !important; color: #000000 !important; font-weight: 600 !important; border: 1px solid #ccc !important; font-family: sans-serif !important; font-size: 15px !important; letter-spacing: normal; text-align: left; border-radius: 5px;}
+    .stTextInput input::placeholder { color: #666666 !important; font-weight: normal !important; }
     .stTextInput input:focus { border-color: #2b4f35 !important; box-shadow: 0 0 5px rgba(43,79,53,0.5) !important; }
     .stButton>button { background-color: #315b3a; color: #fff; border: none; border-radius: 5px; font-weight: bold; width: 100%; transition: 0.3s; margin-top: 15px; padding: 10px 0;}
     .stButton>button:hover { background-color: #1e3b28; color: #fff; }
     .log-table { width: 100%; border-collapse: collapse; margin-top: 30px; font-size: 12px; color: #eee; }
     .log-table th, .log-table td { border: 1px solid rgba(255,255,255,0.2); padding: 6px; text-align: center; }
-    .log-table th { background-color: rgba(0,0,0,0.3); color: #fff; }
+    .log-table th { background-color: rgba(0,0,0,0.3); color: #fff; font-weight: bold; }
     .stat-ok { color: #4CAF50; font-weight: bold; }
     .stat-fail { color: #F44336; font-weight: bold; }
     /* NÂNG CẤP POPUP LOADING */
@@ -122,10 +124,11 @@ css_code_login = """
 
 css_code_hacker = """
     <style>
+    * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; text-rendering: optimizeLegibility !important; }
     .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
-    .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
+    .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center; font-weight: bold !important;}
     .stButton>button { background-color: #0f0f0f; color: #33ff33; border: 1px solid #33ff33; font-family: 'Consolas', monospace; font-weight: bold; transition: 0.3s; width: 100%;}
     .stButton>button:hover { background-color: #33ff33; color: #000; box-shadow: 0 0 15px #33ff33; }
     footer, #MainMenu, header {visibility: hidden;}
@@ -134,12 +137,15 @@ css_code_hacker = """
 
 css_code_work = """
     <style>
+    /* LÀM NÉT CHỮ, KHỬ RĂNG CƯA TRÊN ĐIỆN THOẠI */
+    * { -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important; text-rendering: optimizeLegibility !important; }
+    
     .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; margin-top: -1.5rem !important;}
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
     .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 12px 20px; border-radius: 8px; color: white; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .codx-title { font-size: 20px; font-weight: 700; margin: 0; }
     .codx-card { background-color: white; padding: 12px 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #EAECEF; margin-top: 0px;}
-    .stTextInput input { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
+    .stTextInput input { background-color: #ffffff !important; color: #000000 !important; font-weight: 600 !important; border: 1px solid #cccccc !important; font-family: sans-serif !important; font-size: 14px !important; text-align: left;}
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
     
@@ -156,8 +162,8 @@ css_code_work = """
         padding: 5px 10px !important; background-color: white; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); border: 1px solid #ccc; text-align: center; margin-bottom: 5px !important;
     }
     div[data-testid="metric-container"] > div { align-items: center; justify-content: center; }
-    [data-testid="stMetricLabel"] { font-size: 11px !important; font-weight: bold; margin-bottom: -10px !important; color: #555;}
-    [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #005B9F;}
+    [data-testid="stMetricLabel"] { font-size: 11px !important; font-weight: bold; margin-bottom: -10px !important; color: #333333 !important;}
+    [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 900 !important; line-height: 1 !important; color: #005B9F !important;}
     [data-testid="stMetricDelta"] { font-size: 12px !important; font-weight: 900 !important; margin-top: -5px !important; animation: blink-warning 0.8s infinite alternate !important; }
     [data-testid="stMetricDelta"] svg { display: none !important; }
     
@@ -189,8 +195,13 @@ css_code_work = """
     @keyframes pulse-urgency { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8); } 100% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(255, 51, 51, 0); } }
     @keyframes pulse-urgency-expander { 0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); background-color: #fff4f4; } 100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); background-color: #ffe6e6; } }
 
-    /* KHẮC PHỤC LỖI CHỮ TRẮNG TRÊN ĐIỆN THOẠI (DARK MODE) */
-    .stTextInput label p, .stSelectbox label p, .stMultiSelect label p, .stDateInput label p, .stCheckbox label p, div[data-testid="stExpander"] summary p { color: #000000 !important; font-weight: 600 !important; }
+    /* KHẮC PHỤC LỖI CHỮ TRẮNG, MỜ, KHÔNG THẤY TRÊN ĐIỆN THOẠI (DARK MODE) */
+    .stTextInput label p, .stSelectbox label p, .stMultiSelect label p, .stDateInput label p, .stCheckbox label p, .stRadio label p, div[data-testid="stExpander"] summary p { 
+        color: #000000 !important; font-weight: 700 !important; opacity: 1 !important; text-shadow: none !important; 
+    }
+    div[data-baseweb="select"] span { color: #000000 !important; font-weight: 600 !important; opacity: 1 !important; }
+    .stTabs [data-baseweb="tab"] p { color: #111111 !important; font-weight: 700 !important; opacity: 1 !important; }
+    .stTabs [aria-selected="true"] p { color: #ffffff !important; }
 
     @media screen and (max-width: 768px) {
         .codx-header { padding: 10px; text-align: center; } .codx-title { font-size: 16px !important; }
