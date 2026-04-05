@@ -50,16 +50,15 @@ def add_log(status):
         json.dump(logs[-5:], f)
 
 # ==========================================
-# QUẢN LÝ TRẠNG THÁI (SESSION STATE) & F5
+# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI)
 # ==========================================
-query_role = st.query_params.get("role", "")
-
+# Loại bỏ hoàn toàn query_params để chống lưu link, chống lỗi nút Back trình duyệt
 if "system_auth" not in st.session_state:
-    st.session_state.system_auth = (query_role in ["Admin", "Guest"])
+    st.session_state.system_auth = False
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = (query_role in ["Admin", "Guest"])
+    st.session_state.logged_in = False
 if "role" not in st.session_state:
-    st.session_state.role = query_role if query_role in ["Admin", "Guest"] else None
+    st.session_state.role = None
 if "urgent_filter" not in st.session_state:
     st.session_state.urgent_filter = False
 if "reminder_shown" not in st.session_state:
@@ -193,24 +192,24 @@ css_code_work = """
     }
 
     /* ========================================= */
-    /* HIỆU ỨNG CHỚP NHÁY EXPANDER XEM CHI TIẾT  */
+    /* HIỆU ỨNG CHỚP NHÁY MỤC XEM LẠI CHI TIẾT  */
     /* ========================================= */
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stElementContainer"] summary,
-    div.element-container:has(#urgent-expander-target) + div.element-container summary {
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stExpander"] summary,
+    div.element-container:has(#urgent-expander-target) + div[data-testid="stExpander"] summary {
         background-color: #fff4f4 !important;
         border: 2px solid #ff3333 !important;
         border-radius: 8px !important;
-        animation: pulse-urgency-expander 1s infinite alternate !important;
+        animation: pulse-urgency-expander 0.6s infinite alternate !important;
         margin-bottom: 10px;
     }
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stElementContainer"] summary p,
-    div.element-container:has(#urgent-expander-target) + div.element-container summary p {
-        color: #b30000 !important;
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stExpander"] summary p,
+    div.element-container:has(#urgent-expander-target) + div[data-testid="stExpander"] summary p {
+        color: #ff0000 !important;
         font-weight: 900 !important;
     }
     @keyframes pulse-urgency-expander {
-        0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); }
-        100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); }
+        0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); background-color: #fff4f4; }
+        100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); background-color: #ffe6e6; }
     }
 
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
@@ -319,7 +318,6 @@ if st.session_state.system_auth and not st.session_state.logged_in:
     if st.button("👁️ TRUY CẬP KHÁCH (CHỈ XEM)", use_container_width=True):
         st.session_state.role = "Guest"
         st.session_state.logged_in = True
-        st.query_params["role"] = "Guest" 
         st.rerun()
         
     st.markdown("<hr style='border-color:#114411;'>", unsafe_allow_html=True)
@@ -331,7 +329,6 @@ if st.session_state.system_auth and not st.session_state.logged_in:
             if pwd == "123":
                 st.session_state.role = "Admin"
                 st.session_state.logged_in = True
-                st.query_params["role"] = "Admin" 
                 st.rerun()
             else:
                 st.error("🚨 Sai mật khẩu Admin!")
@@ -437,7 +434,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ CÔNG CỤ
+# HEADER & BỘ CÔNG CỤ (ĐÃ TÁCH NÚT THOÁT VÀ ĐĂNG XUẤT)
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -452,7 +449,6 @@ with col_r:
     </div>
     """, unsafe_allow_html=True)
 
-# ĐÃ TÁCH THÀNH 3 NÚT NHƯ YÊU CẦU
 c_btn_top1, c_btn_top2, c_btn_top3 = st.columns([1.2, 1, 1])
 with c_btn_top1:
     if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
@@ -463,13 +459,11 @@ with c_btn_top1:
         st.rerun()
 with c_btn_top2:
     if st.button("🔙 THOÁT QUYỀN", use_container_width=True):
-        st.query_params.clear()
         st.session_state.logged_in = False
         st.session_state.role = None
         st.rerun()
 with c_btn_top3:
     if st.button("🚪 ĐĂNG XUẤT", type="primary", use_container_width=True):
-        st.query_params.clear()
         st.session_state.clear()
         st.rerun()
 
@@ -497,7 +491,7 @@ if not df_urgent_notify.empty:
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
-    # ĐÃ THÊM MÃ ĐÁNH DẤU CHỚP NHÁY VÀO TRƯỚC EXPANDER NÀY
+    # ĐÃ KÍCH HOẠT MÃ CSS CHỚP NHÁY TRỰC TIẾP CHO MỤC NÀY
     st.markdown('<span id="urgent-expander-target"></span>', unsafe_allow_html=True)
     with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
         for _, ur_row in df_urgent_notify.iterrows():
@@ -719,7 +713,6 @@ with col_chart:
     
     if total > 0:
         fig = px.pie(df_base_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
-        # Đã cập nhật để hiển thị phần trăm rõ ràng lên biểu đồ
         fig.update_traces(textposition='inside', textinfo='percent+label', textfont_size=12)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
