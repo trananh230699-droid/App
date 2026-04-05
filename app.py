@@ -469,6 +469,21 @@ mask = (
 df_filtered = st.session_state.df_master[mask].copy()
 
 # ==========================================
+# CẢNH BÁO NHẮC VIỆC NGAY SAU ĐĂNG NHẬP
+# ==========================================
+df_urgent_notify = st.session_state.df_master[st.session_state.df_master['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
+if not df_urgent_notify.empty:
+    st.markdown(f'''
+        <div style="background-color: #fff4f4; border-left: 5px solid #ff3333; padding: 12px 15px; border-radius: 5px; margin-top: 5px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <p style="margin: 0; font-size: 15px; color: #b30000; font-weight: bold;">🔔 CẢNH BÁO: <span style="color:#333; font-weight:normal;">Đồng chí có <b>{len(df_urgent_notify)}</b> báo cáo cần xử lý ngay!</span></p>
+        </div>
+    ''', unsafe_allow_html=True)
+    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM CHI TIẾT DANH SÁCH KHẨN CẤP", expanded=False):
+        for _, ur_row in df_urgent_notify.iterrows():
+            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
+            st.markdown(f"▪️ {ur_row['TINH_TRANG']} - **{ur_row['TEN_BAO_CAO']}** (Hạn: `{ur_han}`)")
+
+# ==========================================
 # CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT)
 # ==========================================
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
@@ -485,7 +500,7 @@ if st.session_state.urgent_filter:
     df_filtered = df_filtered[df_filtered['TINH_TRANG'].isin(["🔴 Trễ hạn", "🔴 Cần thực hiện ngay"])]
 
 # ------------------------------------------
-# THỐNG KÊ (ĐÃ ÉP CSS SIÊU GỌN)
+# THỐNG KÊ SIÊU GỌN 
 # ------------------------------------------
 total = len(df_filtered)
 done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
@@ -501,7 +516,7 @@ with c_m3: st.metric("TRỄ HẠN", late)
 # HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
 # ------------------------------------------
 st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng, xóa bỏ khoảng trắng thừa
+# Đổi thẻ subheader thành thẻ h4 ép margin 0 để sát mép bảng
 st.markdown("<h4 style='margin-top:0px; margin-bottom:10px; color:#005B9F;'>📋 BẢNG CÔNG VIỆC CHI TIẾT</h4>", unsafe_allow_html=True)
 
 # NÚT BẤM XEM NGAY VIỆC CẦN LÀM (CHỚP NHÁY MÀU ĐỎ CẢNH BÁO)
