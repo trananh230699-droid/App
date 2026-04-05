@@ -10,6 +10,7 @@ import calendar
 import time
 import json
 import random
+import base64
 from streamlit_gsheets import GSheetsConnection
 
 # ==========================================
@@ -20,7 +21,22 @@ st.set_page_config(
     page_icon="☑️", 
     layout="wide"
 )
-
+# ==========================================
+# ÉP LOGO NÉT CĂNG CHO MÀN HÌNH CHÍNH (IOS/ANDROID)
+# ==========================================
+if os.path.exists("logo.png"):
+    with open("logo.png", "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode()
+        
+    apple_icon_html = f"""
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'apple-touch-icon';
+        link.href = 'data:image/png;base64,{encoded_string}';
+        document.head.appendChild(link);
+    </script>
+    """
+    st.markdown(apple_icon_html, unsafe_allow_html=True)
 # ==========================================
 # ĐỒNG BỘ MÚI GIỜ VIỆT NAM (UTC+7)
 # ==========================================
