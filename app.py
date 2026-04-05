@@ -66,6 +66,9 @@ if "role" not in st.session_state:
 # ==========================================
 css_code_login = """
     <style>
+    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
+    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+    
     .stApp { background-color: #2b4f35; background-image: radial-gradient(circle, #3a6845 10%, #1e3b28 80%); font-family: sans-serif; }
     [data-testid="stForm"] { background: #ffffff; padding: 40px 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: none; }
     .stTextInput input { background-color: #ffffff !important; color: #333 !important; border: 1px solid #ccc !important; font-family: sans-serif !important; font-size: 14px !important; letter-spacing: normal; text-align: left; border-radius: 5px;}
@@ -84,6 +87,7 @@ css_code_login = """
 
 css_code_hacker = """
     <style>
+    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
     .stApp { background-color: #050505; color: #33ff33; font-family: 'Consolas', 'Courier New', monospace; }
     .login-box { max-width: 480px; margin: 40px auto; padding: 30px; background: #0f0f0f; border-radius: 10px; box-shadow: 0 5px 20px rgba(51, 255, 51, 0.25); text-align: center; border: 2px solid #33ff33;}
     .stTextInput input { background-color: #000 !important; color: #33ff33 !important; border: 1px solid #33ff33 !important; font-family: 'Consolas', monospace !important; font-size: 16px !important; letter-spacing: 2px; text-align: center;}
@@ -95,6 +99,9 @@ css_code_hacker = """
 
 css_code_work = """
     <style>
+    /* Ép xóa khoảng trắng thừa ở trên cùng do Streamlit tạo ra */
+    .block-container { padding-top: 2rem !important; padding-bottom: 2rem !important; }
+    
     .stApp { background-color: #F4F7F9; color: #31333F; font-family: sans-serif; }
     .codx-header { background: linear-gradient(135deg, #005B9F 0%, #0078D7 100%); padding: 15px 25px; border-radius: 8px; color: white; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     .codx-title { font-size: 22px; font-weight: 700; margin: 0; }
@@ -144,7 +151,7 @@ else:
 # GIAI ĐOẠN 1: MÀN HÌNH NHẬP MÃ BẢO MẬT
 # ==========================================
 if not st.session_state.system_auth:
-    st.markdown("<div style='height: 10vh;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 5vh;'></div>", unsafe_allow_html=True)
     col_space1, col_left, col_space2, col_right, col_space3 = st.columns([0.5, 3.5, 0.5, 3.5, 0.5])
     
     with col_left:
@@ -340,7 +347,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ CÔNG CỤ (TỐI ƯU MOBILE)
+# HEADER & BỘ CÔNG CỤ (HIỂN THỊ LUÔN Ở TRÊN CÙNG)
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -369,7 +376,7 @@ with c_btn_top2:
         st.session_state.clear()
         st.rerun()
 
-# Thu gọn các công cụ Lọc vào Nút Expander để tiết kiệm diện tích dọc
+# Thu gọn các công cụ Lọc vào Nút Expander
 with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
     txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
     
@@ -427,169 +434,170 @@ styled_display = df_display.style.map(style_status, subset=['Tình trạng']).se
 )
 
 # ------------------------------------------
-# HIỂN THỊ BẢNG VÀ CHỨC NĂNG SẮP XẾP A-Z
+# THỐNG KÊ (ĐẨY LÊN TRÊN ĐỂ TIẾT KIỆM KHÔNG GIAN)
 # ------------------------------------------
-metric_container = st.container()
+total = len(df_filtered)
+done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
+late = len(df_filtered[df_filtered['TINH_TRANG'] == "🔴 Trễ hạn"])
+tl_ht = round(done/total*100) if total > 0 else 0
+
+c_m1, c_m2, c_m3 = st.columns(3)
+with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
+with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
+with c_m3: st.metric("TRỄ HẠN", late, delta_color="inverse", delta="Cảnh báo")
+
 st.markdown("<br>", unsafe_allow_html=True)
-col_main, col_sub = st.columns([2.4, 1.0])
 
-with col_main:
-    st.markdown('<div class="codx-card">', unsafe_allow_html=True)
-    st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
-    
-    st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A) BỘ DỮ LIỆU GỐC")
-    c_s1, c_s2 = st.columns([1.5, 2])
-    
-    sort_opts = [
-        "Mặc định (Không sắp xếp)", "Tên công việc", "Kỳ báo cáo", 
-        "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
-    ]
-    with c_s1:
-        sort_col = st.selectbox("Sắp xếp theo:", sort_opts)
-    with c_s2:
-        sort_asc = st.radio("Thứ tự:", ["A-Z (Tăng dần)", "Z-A (Giảm dần)"], horizontal=True)
+# ------------------------------------------
+# HIỂN THỊ BẢNG LÀM VIỆC FULL MÀN HÌNH
+# ------------------------------------------
+st.markdown('<div class="codx-card">', unsafe_allow_html=True)
+st.subheader("📋 BẢNG CÔNG VIỆC CHI TIẾT")
 
-    col_map = {
-        "Tên công việc": "TEN_BAO_CAO", 
-        "Kỳ báo cáo": "KY_BAO_CAO", 
-        "Hạn chót": "DEADLINE", 
-        "Tình trạng": "TINH_TRANG", 
-        "Đơn vị yêu cầu báo cáo": "DON_VI_YEU_CAU",
-        "Lĩnh vực": "LINH_VUC"
-    }
+st.markdown("###### ↕️ LỌC VÀ SẮP XẾP (A-Z / Z-A) BỘ DỮ LIỆU GỐC")
+c_s1, c_s2 = st.columns([1.5, 2])
+
+sort_opts = [
+    "Mặc định (Không sắp xếp)", "Tên công việc", "Kỳ báo cáo", 
+    "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"
+]
+with c_s1:
+    sort_col = st.selectbox("Sắp xếp theo:", sort_opts)
+with c_s2:
+    sort_asc = st.radio("Thứ tự:", ["A-Z (Tăng dần)", "Z-A (Giảm dần)"], horizontal=True)
+
+col_map = {
+    "Tên công việc": "TEN_BAO_CAO", 
+    "Kỳ báo cáo": "KY_BAO_CAO", 
+    "Hạn chót": "DEADLINE", 
+    "Tình trạng": "TINH_TRANG", 
+    "Đơn vị yêu cầu báo cáo": "DON_VI_YEU_CAU",
+    "Lĩnh vực": "LINH_VUC"
+}
+
+if sort_col != "Mặc định (Không sắp xếp)":
+    is_asc = True if sort_asc == "A-Z (Tăng dần)" else False
+    df_filtered = df_filtered.sort_values(
+        by=col_map[sort_col], 
+        ascending=is_asc, 
+        na_position='last'
+    )
+df_filtered = df_filtered.reset_index(drop=True)
+
+# CẤU TRÚC LÕI ĐƯỢC ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
+df_interact = df_filtered.copy()
+df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
+df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
+df_interact['TINH_TRANG'] = df_interact['TINH_TRANG'].astype(str)
+df_interact['DON_VI_YEU_CAU'] = df_interact['DON_VI_YEU_CAU'].astype(str)
+df_interact['LINH_VUC'] = df_interact['LINH_VUC'].astype(str)
+df_interact['_ID'] = df_interact['_ID'].astype(int)
+
+df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
+df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].notnull(), None)
+
+tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
+
+with tab_interact:
+    st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. **Nhấp đúp chuột vào ô Tên công việc** để xem toàn bộ nội dung và chỉnh sửa.")
     
-    if sort_col != "Mặc định (Không sắp xếp)":
-        is_asc = True if sort_asc == "A-Z (Tăng dần)" else False
-        df_filtered = df_filtered.sort_values(
-            by=col_map[sort_col], 
-            ascending=is_asc, 
-            na_position='last'
+    if st.session_state.role == "Admin":
+        st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
+        df_interact.insert(0, "🗑️ Xóa", False)
+
+        c_cols = {
+            "_ID": None, 
+            "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
+            "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+            "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+        }
+
+        edited_df = st.data_editor(
+            df_interact,
+            key=st.session_state.editor_key,
+            use_container_width=True, hide_index=True,
+            column_config=c_cols
         )
-    df_filtered = df_filtered.reset_index(drop=True)
-    
-    # CẤU TRÚC LÕI ĐƯỢC ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
-    df_interact = df_filtered.copy()
-    df_interact['TEN_BAO_CAO'] = df_interact['TEN_BAO_CAO'].astype(str)
-    df_interact['KY_BAO_CAO'] = df_interact['KY_BAO_CAO'].astype(str)
-    df_interact['TINH_TRANG'] = df_interact['TINH_TRANG'].astype(str)
-    df_interact['DON_VI_YEU_CAU'] = df_interact['DON_VI_YEU_CAU'].astype(str)
-    df_interact['LINH_VUC'] = df_interact['LINH_VUC'].astype(str)
-    df_interact['_ID'] = df_interact['_ID'].astype(int)
-    
-    df_interact['DEADLINE'] = pd.to_datetime(df_interact['DEADLINE'], errors='coerce')
-    df_interact['DEADLINE'] = df_interact['DEADLINE'].where(df_interact['DEADLINE'].notnull(), None)
 
-    tab_interact, tab_wrap = st.tabs(["📊 BẢNG TƯƠNG TÁC (Nhấn tiêu đề sắp xếp)", "📝 BẢNG CHI TIẾT (Tự động bẻ dòng Warp Text)"])
-    
-    with tab_interact:
-        st.info("💡 **Gợi ý:** Bấm trực tiếp vào các thanh tiêu đề (Tên công việc, Hạn chót...) để sắp xếp tự động. **Nhấp đúp chuột vào ô Tên công việc** để xem toàn bộ nội dung và chỉnh sửa.")
-        
-        if st.session_state.role == "Admin":
-            st.markdown("**KHU VỰC THAO TÁC (ADMIN):** Sửa trực tiếp, tick xoá, hoặc chọn hoàn thành.")
-            df_interact.insert(0, "🗑️ Xóa", False)
+        editor_state = st.session_state.get(st.session_state.editor_key, {})
+        has_changes = False
 
-            c_cols = {
-                "_ID": None, 
-                "🗑️ Xóa": st.column_config.CheckboxColumn("Xóa", default=False, width="small"),
-                "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-                "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-                "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-                "TINH_TRANG": st.column_config.SelectboxColumn("Tình trạng", options=["🟢 Đã hoàn thành", "🔴 Cần thực hiện ngay", "🔴 Trễ hạn", "⏳ Đang thực hiện"], width="medium"),
-                "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
-                "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
-            }
+        if editor_state.get("deleted_rows"):
+            for idx in sorted(editor_state["deleted_rows"], reverse=True):
+                row_id = df_interact.iloc[idx]['_ID']
+                st.session_state.df_master = st.session_state.df_master[st.session_state.df_master['_ID'] != row_id]
+            has_changes = True
 
-            edited_df = st.data_editor(
-                df_interact,
-                key=st.session_state.editor_key,
-                use_container_width=True, hide_index=True,
-                column_config=c_cols
-            )
+        if editor_state.get("edited_rows"):
+            for idx_str, changes in editor_state["edited_rows"].items():
+                idx = int(idx_str)
+                row_id = df_interact.iloc[idx]['_ID']
+                matching_indices = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row_id].tolist()
+                if matching_indices:
+                    m_idx = matching_indices[0]
+                    if changes.get("🗑️ Xóa") == True:
+                        st.session_state.df_master = st.session_state.df_master.drop(m_idx)
+                    else:
+                        for col, val in changes.items():
+                            if col != "🗑️ Xóa":
+                                st.session_state.df_master.at[m_idx, col] = val
+                        
+                        if "TINH_TRANG" not in changes:
+                            updated_row = st.session_state.df_master.loc[m_idx]
+                            st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
+            has_changes = True
 
-            editor_state = st.session_state.get(st.session_state.editor_key, {})
-            has_changes = False
+        if has_changes:
+            st.session_state.editor_key = str(uuid.uuid4())
+            st.rerun()
 
-            if editor_state.get("deleted_rows"):
-                for idx in sorted(editor_state["deleted_rows"], reverse=True):
-                    row_id = df_interact.iloc[idx]['_ID']
-                    st.session_state.df_master = st.session_state.df_master[st.session_state.df_master['_ID'] != row_id]
-                has_changes = True
-
-            if editor_state.get("edited_rows"):
-                for idx_str, changes in editor_state["edited_rows"].items():
-                    idx = int(idx_str)
-                    row_id = df_interact.iloc[idx]['_ID']
-                    matching_indices = st.session_state.df_master.index[st.session_state.df_master['_ID'] == row_id].tolist()
-                    if matching_indices:
-                        m_idx = matching_indices[0]
-                        if changes.get("🗑️ Xóa") == True:
-                            st.session_state.df_master = st.session_state.df_master.drop(m_idx)
-                        else:
-                            for col, val in changes.items():
-                                if col != "🗑️ Xóa":
-                                    st.session_state.df_master.at[m_idx, col] = val
-                            
-                            if "TINH_TRANG" not in changes:
-                                updated_row = st.session_state.df_master.loc[m_idx]
-                                st.session_state.df_master.at[m_idx, 'TINH_TRANG'] = phan_loai(updated_row)
-                has_changes = True
-
-            if has_changes:
-                st.session_state.editor_key = str(uuid.uuid4())
+        if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
+            try:
+                df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
+                
+                df_to_save['DEADLINE'] = pd.to_datetime(df_to_save['DEADLINE']).dt.strftime('%d/%m/%Y').fillna('')
+                df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
+                df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
+                
+                conn.update(worksheet="Data", data=df_to_save)
+                st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
+                
+                st.cache_data.clear()
+                time.sleep(1)
                 st.rerun()
+            except Exception as e:
+                st.error(f"🚨 LỖI LƯU CLOUD: {e}")
+    else:
+        g_cols = {
+            "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
+            "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
+            "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
+            "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width="medium"),
+            "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
+            "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
+        }
+        st.dataframe(
+            df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]],
+            use_container_width=True, hide_index=True, column_config=g_cols
+        )
 
-            if st.button("💾 LƯU ĐỒNG BỘ LÊN CLOUD", type="primary"):
-                try:
-                    df_to_save = st.session_state.df_master[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
-                    
-                    df_to_save['DEADLINE'] = pd.to_datetime(df_to_save['DEADLINE']).dt.strftime('%d/%m/%Y').fillna('')
-                    df_to_save.insert(0, "STT", range(1, len(df_to_save) + 1))
-                    df_to_save.columns = ["STT", "Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu báo cáo", "Lĩnh vực"]
-                    
-                    conn.update(worksheet="Data", data=df_to_save)
-                    st.success("✅ Đã cập nhật thành công lên hệ thống gốc!")
-                    
-                    st.cache_data.clear()
-                    time.sleep(1)
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"🚨 LỖI LƯU CLOUD: {e}")
-        else:
-            g_cols = {
-                "TEN_BAO_CAO": st.column_config.TextColumn("Tên công việc", width="large"), 
-                "KY_BAO_CAO": st.column_config.TextColumn("Kỳ báo cáo"), 
-                "DEADLINE": st.column_config.DateColumn("Hạn chót", format="DD/MM/YYYY"),
-                "TINH_TRANG": st.column_config.TextColumn("Tình trạng", width="medium"),
-                "DON_VI_YEU_CAU": st.column_config.TextColumn("Đơn vị yêu cầu", width="medium"),
-                "LINH_VUC": st.column_config.TextColumn("Lĩnh vực", width="medium")
-            }
-            st.dataframe(
-                df_interact[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]],
-                use_container_width=True, hide_index=True, column_config=g_cols
-            )
-
-    with tab_wrap:
-        st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng xuống hàng giống y hệt Excel để tiện việc theo dõi báo cáo dài, tuy nhiên bảng này không cho phép nhấn tiêu đề để sắp xếp.")
-        st.table(styled_display)
-        
-    st.markdown('</div>', unsafe_allow_html=True)
+with tab_wrap:
+    st.info("👁️ **Chế độ xem bảng tĩnh:** Nội dung tự động bẻ dòng xuống hàng giống y hệt Excel để tiện việc theo dõi báo cáo dài, tuy nhiên bảng này không cho phép nhấn tiêu đề để sắp xếp.")
+    st.table(styled_display)
+    
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# BIỂU ĐỒ & LỊCH
+# BIỂU ĐỒ & LỊCH (ĐƯỢC DI CHUYỂN XUỐNG DƯỚI)
 # ------------------------------------------
-with metric_container:
-    c_m1, c_m2, c_m3 = st.columns(3)
-    total = len(df_filtered)
-    done = len(df_filtered[df_filtered['TINH_TRANG'] == "🟢 Đã hoàn thành"])
-    late = len(df_filtered[df_filtered['TINH_TRANG'] == "🔴 Trễ hạn"])
-    
-    tl_ht = round(done/total*100) if total > 0 else 0
-    
-    with c_m1: st.metric("TỔNG CÔNG VIỆC", total)
-    with c_m2: st.metric("ĐÃ XONG", done, f"{tl_ht}%")
-    with c_m3: st.metric("TRỄ HẠN", late, delta_color="inverse", delta="Cảnh báo")
+st.markdown("<br>", unsafe_allow_html=True)
+col_chart, col_cal = st.columns(2)
 
-with col_sub:
+with col_chart:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; font-weight:bold;'>📊 TỶ LỆ TIẾN ĐỘ</p>", unsafe_allow_html=True)
     
@@ -599,8 +607,9 @@ with col_sub:
         fig = px.pie(df_filtered, names='TINH_TRANG', hole=0.5, color='TINH_TRANG', color_discrete_map=mau_bd)
         fig.update_layout(showlegend=False, height=200, margin=dict(t=0, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div><br>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
+with col_cal:
     st.markdown('<div class="codx-card">', unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; font-weight:bold;'>📅 LỊCH NHẮC VIỆC THÁNG NÀY</p>", unsafe_allow_html=True)
     
@@ -679,66 +688,65 @@ with col_sub:
 # 8. THÊM BÁO CÁO MỚI (CHỈ DÀNH CHO ADMIN)
 # ==========================================
 if st.session_state.role == "Admin":
-    with col_main:
-        st.markdown("<br>", unsafe_allow_html=True)
-        k_map = {
-            "Tháng 01": "2026-01-10", "Tháng 02": "2026-02-10", "Tháng 03": "2026-03-10", "Quý 1": "2026-03-10",
-            "Tháng 04": "2026-04-10", "Tháng 05": "2026-05-10", "6 Tháng": "2026-06-10", "Tháng 06": "2026-06-10",
-            "Tháng 07": "2026-07-10", "Tháng 08": "2026-08-10", "Tháng 09": "2026-09-10", "Quý 3": "2026-09-10",
-            "Tháng 10": "2026-10-10", "Tháng 11": "2026-11-10", "Tháng 12": "2026-12-10", "Tổng kết năm": "2026-12-10"
-        }
+    st.markdown("<br>", unsafe_allow_html=True)
+    k_map = {
+        "Tháng 01": "2026-01-10", "Tháng 02": "2026-02-10", "Tháng 03": "2026-03-10", "Quý 1": "2026-03-10",
+        "Tháng 04": "2026-04-10", "Tháng 05": "2026-05-10", "6 Tháng": "2026-06-10", "Tháng 06": "2026-06-10",
+        "Tháng 07": "2026-07-10", "Tháng 08": "2026-08-10", "Tháng 09": "2026-09-10", "Quý 3": "2026-09-10",
+        "Tháng 10": "2026-10-10", "Tháng 11": "2026-11-10", "Tháng 12": "2026-12-10", "Tổng kết năm": "2026-12-10"
+    }
 
-        with st.expander("➕ THÊM BÁO CÁO MỚI (Mở Form)"):
-            with st.form("form_them", clear_on_submit=True):
-                c_t1, c_t2, c_t3 = st.columns([2, 1, 1])
-                with c_t1: f_ten = st.text_input("Tên báo cáo *")
-                with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
-                with c_t3: f_lv = st.text_input("Lĩnh vực")
+    with st.expander("➕ THÊM BÁO CÁO MỚI (Mở Form)"):
+        with st.form("form_them", clear_on_submit=True):
+            c_t1, c_t2, c_t3 = st.columns([2, 1, 1])
+            with c_t1: f_ten = st.text_input("Tên báo cáo *")
+            with c_t2: f_dv = st.text_input("Đơn vị yêu cầu")
+            with c_t3: f_lv = st.text_input("Lĩnh vực")
+            
+            c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
+            with c_f1: 
+                f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
+                f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
                 
-                c_f1, c_f2, c_f3 = st.columns([2, 1, 1])
-                with c_f1: 
-                    f_k = st.multiselect("Kỳ báo cáo (Chọn từ danh sách)", options=list(k_map.keys()))
-                    f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
-                    
-                with c_f2: 
-                    f_d = st.date_input("Hạn chót", value=get_vn_time().date())
-                with c_f3: 
-                    f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
-                
-                if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
-                    if f_ten:
-                        new_data = []
-                        max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
-                        dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
-                        lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
+            with c_f2: 
+                f_d = st.date_input("Hạn chót", value=get_vn_time().date())
+            with c_f3: 
+                f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
+            
+            if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
+                if f_ten:
+                    new_data = []
+                    max_id = st.session_state.df_master['_ID'].max() if not st.session_state.df_master.empty else -1
+                    dv_val = f_dv.strip() if f_dv.strip() else "Không xác định"
+                    lv_val = f_lv.strip() if f_lv.strip() else "Không xác định"
 
-                        final_k = list(f_k)
-                        if f_k_custom.strip():
-                            final_k.append(f_k_custom.strip())
+                    final_k = list(f_k)
+                    if f_k_custom.strip():
+                        final_k.append(f_k_custom.strip())
 
-                        if final_k:
-                            for k in final_k:
-                                max_id += 1
-                                m_date = k_map.get(k)
-                                d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
-                                
-                                new_data.append({
-                                    "_ID": max_id, "TEN_BAO_CAO": f_ten, 
-                                    "KY_BAO_CAO": k, "DEADLINE": d_val, 
-                                    "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
-                                })
-                        else:
+                    if final_k:
+                        for k in final_k:
                             max_id += 1
+                            m_date = k_map.get(k)
+                            d_val = pd.to_datetime(m_date) if m_date else pd.to_datetime(f_d)
+                            
                             new_data.append({
                                 "_ID": max_id, "TEN_BAO_CAO": f_ten, 
-                                "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
+                                "KY_BAO_CAO": k, "DEADLINE": d_val, 
                                 "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
                             })
+                    else:
+                        max_id += 1
+                        new_data.append({
+                            "_ID": max_id, "TEN_BAO_CAO": f_ten, 
+                            "KY_BAO_CAO": "Không xác định", "DEADLINE": pd.to_datetime(f_d), 
+                            "TINH_TRANG": f_tt, "DON_VI_YEU_CAU": dv_val, "LINH_VUC": lv_val
+                        })
 
-                        n_df = pd.DataFrame(new_data)
-                        n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
-                        st.session_state.df_master = pd.concat(
-                            [st.session_state.df_master, n_df], 
-                            ignore_index=True
-                        )
-                        st.rerun()
+                    n_df = pd.DataFrame(new_data)
+                    n_df['TINH_TRANG'] = n_df.apply(phan_loai, axis=1)
+                    st.session_state.df_master = pd.concat(
+                        [st.session_state.df_master, n_df], 
+                        ignore_index=True
+                    )
+                    st.rerun()
