@@ -362,7 +362,7 @@ with c_btn_top1:
     if st.button("🔄 LÀM MỚI DỮ LIỆU", use_container_width=True):
         st.cache_data.clear(); st.session_state.df_master = load_data(); st.session_state.editor_key = str(uuid.uuid4()); st.session_state.alert_closed = False; st.rerun()
 with c_btn_top2:
-    if st.button("🔙 THOÁT QUYỀN", use_container_width=True):
+    if st.button("🔙 ĐỔI QUYỀN", use_container_width=True):
         st.query_params.clear(); st.session_state.logged_in = False; st.session_state.role = None; st.rerun()
 with c_btn_top3:
     if st.button("🚪 ĐĂNG XUẤT", type="primary", use_container_width=True):
