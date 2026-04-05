@@ -104,7 +104,9 @@ css_code_login = """
     .log-table th { background-color: rgba(0,0,0,0.3); color: #fff; }
     .stat-ok { color: #4CAF50; font-weight: bold; }
     .stat-fail { color: #F44336; font-weight: bold; }
-    .terminal-load { font-family: 'Consolas', monospace; color: #33ff33; font-size: 14px; line-height: 1.6; background: #000; padding: 20px; border-radius: 5px; border: 1px solid #33ff33; margin-top: 20px; text-align: left; }
+    /* NÂNG CẤP POPUP LOADING */
+    .terminal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 9998; }
+    .terminal-load { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 450px; z-index: 9999; font-family: 'Consolas', monospace; color: #33ff33; font-size: 14px; line-height: 1.6; background: #000; padding: 25px; border-radius: 8px; border: 2px solid #33ff33; box-shadow: 0 0 30px rgba(51,255,51,0.6); text-align: left; }
     footer, #MainMenu, header {visibility: hidden;}
     </style>
 """
@@ -178,6 +180,9 @@ css_code_work = """
     @keyframes pulse-urgency { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8); } 100% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(255, 51, 51, 0); } }
     @keyframes pulse-urgency-expander { 0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); background-color: #fff4f4; } 100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); background-color: #ffe6e6; } }
 
+    /* KHẮC PHỤC LỖI CHỮ TRẮNG TRÊN ĐIỆN THOẠI (DARK MODE) */
+    .stTextInput label p, .stSelectbox label p, .stMultiSelect label p, .stDateInput label p, .stCheckbox label p, div[data-testid="stExpander"] summary p { color: #000000 !important; font-weight: 600 !important; }
+
     @media screen and (max-width: 768px) {
         .codx-header { padding: 10px; text-align: center; } .codx-title { font-size: 16px !important; }
         .stTabs [data-baseweb="tab-list"] { overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; }
@@ -237,10 +242,11 @@ if not st.session_state.system_auth:
                         bar_empty = "-" * (20 - i)
                         pct = i * 5
                         spin = spinners[i % 4]
-                        html_load = f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}% {spin}</span></div>'
+                        # Render dưới dạng Popup Overlay
+                        html_load = f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[{bar_fill}{bar_empty}] {pct}% {spin}</span></div>'
                         loader.markdown(html_load, unsafe_allow_html=True)
                         time.sleep(0.12)
-                    loader.markdown(f'<div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> <span style="color:#00e5ff;">ACCESS GRANTED. PROCEED TO ROLE SELECTION.</span></div>', unsafe_allow_html=True)
+                    loader.markdown(f'<div class="terminal-overlay"></div><div class="terminal-load">{base_txt}<span style="color:#00ff00;">[████████████████████] 100%</span><br><br>> <span style="color:#00e5ff;">ACCESS GRANTED. PROCEED TO ROLE SELECTION.</span></div>', unsafe_allow_html=True)
                     time.sleep(0.8)
                     st.session_state.system_auth = True
                     if 'df_master' in st.session_state: del st.session_state['df_master']
@@ -520,6 +526,10 @@ with c_tbl_btn:
             st.rerun()
 
 df_filtered = df_filtered.reset_index(drop=True)
+
+# THÊM THÔNG BÁO NẾU LỌC VIỆC GẤP MÀ KHÔNG CÓ VIỆC NÀO
+if st.session_state.urgent_filter and df_filtered.empty:
+    st.success("✅ Hiện không có báo cáo nào đến kỳ hạn.")
 
 # LÕI ĐÓNG BĂNG 100%: Xử lý định dạng ngày tháng để không lỗi sắp xếp tiêu đề
 df_interact = df_filtered.copy()
