@@ -16,7 +16,7 @@ from streamlit_gsheets import GSheetsConnection
 # CẤU HÌNH TRANG
 # ==========================================
 st.set_page_config(
-    page_title="Hệ thống Quản trị - CAP An Khánh", 
+    page_title="Hệ thống Quản trị Báo cáo - CAP An Khánh", 
     page_icon="☑️", 
     layout="wide"
 )
