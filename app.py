@@ -118,10 +118,10 @@ css_code_work = """
     .stTextInput input:focus { border-color: #0078D7 !important; box-shadow: 0 0 5px rgba(0,120,215,0.5) !important; }
     footer, #MainMenu, header {visibility: hidden;}
     
-    /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML - FIX MÀU CHỮ ĐỂ KHÔNG BỊ LỖI DARK MODE */
+    /* Cấu hình ép bẻ dòng (Warp Text) cho bảng tĩnh HTML - Đã xóa thẻ !important ở color để màu đỏ nổi lên được */
     .stTable { background-color: white; border-radius: 5px; overflow: hidden; margin-top: 5px; }
-    .stTable table { width: 100% !important; border-collapse: collapse; color: #333333 !important;}
-    .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; color: #333333 !important;}
+    .stTable table { width: 100% !important; border-collapse: collapse; color: #333333;}
+    .stTable th, .stTable td { white-space: pre-wrap !important; word-wrap: break-word !important; border: 1px solid #e0e0e0; color: #333333;}
     .stTable th { background-color: #f8f9fa; font-weight: bold; color: #000000 !important;}
     
     /* Chỉnh sửa thẩm mỹ cho Tabs */
@@ -192,27 +192,6 @@ css_code_work = """
     @keyframes pulse-urgency {
         0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.8); }
         100% { transform: scale(1.02); box-shadow: 0 0 0 12px rgba(255, 51, 51, 0); }
-    }
-
-    /* ========================================= */
-    /* HIỆU ỨNG CHỚP NHÁY EXPANDER XEM CHI TIẾT (ĐÃ SỬA LỖI TRIỆT ĐỂ) */
-    /* ========================================= */
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid*="expander"] summary,
-    div.element-container:has(#urgent-expander-target) + div.element-container summary {
-        background-color: #fff4f4 !important;
-        border: 2px solid #ff3333 !important;
-        border-radius: 8px !important;
-        animation: pulse-urgency-expander 0.6s infinite alternate !important;
-        margin-bottom: 10px;
-    }
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid*="expander"] summary p,
-    div.element-container:has(#urgent-expander-target) + div.element-container summary p {
-        color: #ff0000 !important;
-        font-weight: 900 !important;
-    }
-    @keyframes pulse-urgency-expander {
-        0% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); background-color: #fff4f4; }
-        100% { box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); background-color: #ffe6e6; }
     }
 
     /* MEDIA QUERIES - TỐI ƯU GIAO DIỆN MOBILE & IPHONE 15 PRO MAX */
@@ -336,7 +315,6 @@ if st.session_state.system_auth and not st.session_state.logged_in:
             else:
                 st.error("🚨 Sai mật khẩu Admin!")
     
-    # Ở giai đoạn 2 (Chọn quyền), bổ sung thêm nút Thoát hẳn
     if st.button("🚪 ĐĂNG XUẤT HOÀN TOÀN", use_container_width=True):
         st.session_state.clear()
         st.query_params.clear()
@@ -503,12 +481,43 @@ if not df_urgent_notify.empty:
     if not st.session_state.alert_closed:
         show_urgent_dialog(df_urgent_notify)
 
-    # ĐÃ KÍCH HOẠT MÃ CSS CHỚP NHÁY TRỰC TIẾP CHO MỤC NÀY
-    st.markdown('<span id="urgent-expander-target"></span>', unsafe_allow_html=True)
-    with st.expander("👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP", expanded=False):
-        for _, ur_row in df_urgent_notify.iterrows():
-            ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
-            st.markdown(f"▪️ **{ur_row['TINH_TRANG']}**: {ur_row['TEN_BAO_CAO']} *(Hạn chót: {ur_han})*")
+    # SỬA LỖI 100%: Dùng HTML NATIVE để tạo thanh chớp nháy miễn nhiễm với hệ thống Streamlit
+    content_html = ""
+    for _, ur_row in df_urgent_notify.iterrows():
+        ur_han = ur_row['DEADLINE'].strftime('%d/%m/%Y') if pd.notnull(ur_row['DEADLINE']) else "Chưa có"
+        content_html += f"<div style='margin-bottom: 5px;'>▪️ <b>{ur_row['TINH_TRANG']}</b>: {ur_row['TEN_BAO_CAO']} <i>(Hạn chót: {ur_han})</i></div>"
+
+    html_expander = f"""
+    <style>
+    .urgent-html-expander {{
+        background-color: #fff4f4;
+        border: 2px solid #ff3333;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        animation: pulse-urgency-html 0.6s infinite alternate;
+    }}
+    .urgent-html-expander summary {{
+        color: #ff0000;
+        font-weight: 900;
+        font-family: sans-serif;
+        cursor: pointer;
+        outline: none;
+        font-size: 15px;
+    }}
+    @keyframes pulse-urgency-html {{
+        0% {{ box-shadow: 0 0 0 0 rgba(255, 51, 51, 0.5); background-color: #fff4f4; }}
+        100% {{ box-shadow: 0 0 0 10px rgba(255, 51, 51, 0); background-color: #ffe6e6; }}
+    }}
+    </style>
+    <details class="urgent-html-expander">
+        <summary>👀 BẤM VÀO ĐÂY ĐỂ XEM LẠI CHI TIẾT CÁC VIỆC KHẨN CẤP</summary>
+        <div style="margin-top: 15px; color: #333; font-family: sans-serif; font-size: 14px;">
+            {content_html}
+        </div>
+    </details>
+    """
+    st.markdown(html_expander, unsafe_allow_html=True)
 
 with st.expander("🔽 BẤM VÀO ĐÂY ĐỂ MỞ / THU GỌN BỘ LỌC DỮ LIỆU", expanded=False):
     txt_search = st.text_input("🔍 Tìm Tên báo cáo:")
@@ -558,14 +567,29 @@ else:
     df_filtered = df_base_filtered.copy()
 
 # ==========================================
-# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH (WRAP TEXT) 
+# CHUẨN BỊ BẢNG ĐỊNH DẠNG TĨNH & TÔ ĐỎ HÀNG KHẨN CẤP
 # ==========================================
 df_display = df_filtered[["TEN_BAO_CAO", "KY_BAO_CAO", "DEADLINE", "TINH_TRANG", "DON_VI_YEU_CAU", "LINH_VUC"]].copy()
 if pd.api.types.is_datetime64_any_dtype(df_display['DEADLINE']):
     df_display['DEADLINE'] = df_display['DEADLINE'].dt.strftime('%d/%m/%Y').fillna('')
 
 df_display.columns = ["Tên công việc", "Kỳ báo cáo", "Hạn chót", "Tình trạng", "Đơn vị yêu cầu", "Lĩnh vực"]
-styled_display = df_display.style.map(style_status, subset=['Tình trạng']).set_properties(
+
+# HÀM NHUỘM ĐỎ CÁC HÀNG KHẨN CẤP
+def highlight_urgent_row(row):
+    styles = []
+    status = str(row['Tình trạng'])
+    is_urgent = "Trễ hạn" in status or "Cần thực hiện ngay" in status
+    for col in row.index:
+        if col == 'Tình trạng':
+            styles.append('font-weight: bold;') # Để style_status tự lo màu nền
+        elif is_urgent:
+            styles.append('color: #cc0000; font-weight: bold;') # Nhuộm đỏ in đậm chữ
+        else:
+            styles.append('')
+    return styles
+
+styled_display = df_display.style.apply(highlight_urgent_row, axis=1).map(style_status, subset=['Tình trạng']).set_properties(
     subset=['Tên công việc'], **{'white-space': 'pre-wrap', 'min-width': '400px'}
 )
 
