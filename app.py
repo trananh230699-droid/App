@@ -50,21 +50,24 @@ def add_log(status):
         json.dump(logs[-5:], f)
 
 # ==========================================
-# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI)
+# QUẢN LÝ TRẠNG THÁI (BẢO MẬT TUYỆT ĐỐI CHỐNG NÚT BACK)
 # ==========================================
-# Loại bỏ hoàn toàn query_params để chống lưu link, chống lỗi nút Back trình duyệt
-if "system_auth" not in st.session_state:
-    st.session_state.system_auth = False
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "role" not in st.session_state:
-    st.session_state.role = None
-if "urgent_filter" not in st.session_state:
-    st.session_state.urgent_filter = False
-if "reminder_shown" not in st.session_state:
-    st.session_state.reminder_shown = False
-if "alert_closed" not in st.session_state:
-    st.session_state.alert_closed = False
+def check_auth_status():
+    # Chỉ lấy quyền từ session_state, hoàn toàn phớt lờ URL để chống ấn nút Back
+    if "system_auth" not in st.session_state:
+        st.session_state.system_auth = False
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+    if "role" not in st.session_state:
+        st.session_state.role = None
+    if "urgent_filter" not in st.session_state:
+        st.session_state.urgent_filter = False
+    if "reminder_shown" not in st.session_state:
+        st.session_state.reminder_shown = False
+    if "alert_closed" not in st.session_state:
+        st.session_state.alert_closed = False
+
+check_auth_status()
 
 # ==========================================
 # GIAO DIỆN CSS: CHIA 3 GIAI ĐOẠN ĐỘC LẬP
@@ -192,18 +195,18 @@ css_code_work = """
     }
 
     /* ========================================= */
-    /* HIỆU ỨNG CHỚP NHÁY MỤC XEM LẠI CHI TIẾT  */
+    /* HIỆU ỨNG CHỚP NHÁY EXPANDER XEM CHI TIẾT (ĐÃ SỬA LỖI TRIỆT ĐỂ) */
     /* ========================================= */
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stExpander"] summary,
-    div.element-container:has(#urgent-expander-target) + div[data-testid="stExpander"] summary {
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid*="expander"] summary,
+    div.element-container:has(#urgent-expander-target) + div.element-container summary {
         background-color: #fff4f4 !important;
         border: 2px solid #ff3333 !important;
         border-radius: 8px !important;
         animation: pulse-urgency-expander 0.6s infinite alternate !important;
         margin-bottom: 10px;
     }
-    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid="stExpander"] summary p,
-    div.element-container:has(#urgent-expander-target) + div[data-testid="stExpander"] summary p {
+    div[data-testid="stElementContainer"]:has(#urgent-expander-target) + div[data-testid*="expander"] summary p,
+    div.element-container:has(#urgent-expander-target) + div.element-container summary p {
         color: #ff0000 !important;
         font-weight: 900 !important;
     }
@@ -332,6 +335,13 @@ if st.session_state.system_auth and not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error("🚨 Sai mật khẩu Admin!")
+    
+    # Ở giai đoạn 2 (Chọn quyền), bổ sung thêm nút Thoát hẳn
+    if st.button("🚪 ĐĂNG XUẤT HOÀN TOÀN", use_container_width=True):
+        st.session_state.clear()
+        st.query_params.clear()
+        st.rerun()
+        
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
@@ -434,7 +444,7 @@ if "editor_key" not in st.session_state:
     st.session_state.editor_key = str(uuid.uuid4())
 
 # ------------------------------------------
-# HEADER & BỘ CÔNG CỤ (ĐÃ TÁCH NÚT THOÁT VÀ ĐĂNG XUẤT)
+# HEADER & BỘ CÔNG CỤ TÁCH BIỆT THOÁT VÀ ĐĂNG XUẤT
 # ------------------------------------------
 col_l, col_r = st.columns([1, 8])
 with col_l:
@@ -459,12 +469,14 @@ with c_btn_top1:
         st.rerun()
 with c_btn_top2:
     if st.button("🔙 THOÁT QUYỀN", use_container_width=True):
+        st.query_params.clear() # Xóa link
         st.session_state.logged_in = False
         st.session_state.role = None
         st.rerun()
 with c_btn_top3:
     if st.button("🚪 ĐĂNG XUẤT", type="primary", use_container_width=True):
-        st.session_state.clear()
+        st.query_params.clear() # Xóa link
+        st.session_state.clear() # Xóa trắng não bộ hệ thống
         st.rerun()
 
 # ==========================================
