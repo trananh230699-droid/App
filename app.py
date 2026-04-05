@@ -651,7 +651,7 @@ if st.session_state.role == "Admin":
                 f_k_custom = st.text_input("Hoặc nhập kỳ báo cáo mới (nếu có)")
             with c_f2: 
                 f_d = st.date_input("Hạn chót", value=get_vn_time().date())
-                f_override = st.checkbox("☑️ Ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
+                f_override = st.checkbox("Chọn ☑️ vào ô bên trí để ghi đè hạn tự động", value=False, help="Đánh dấu để dùng chính xác ngày ở trên làm hạn chót, bỏ qua hệ thống tự động.")
             with c_f3: f_tt = st.selectbox("Tình trạng", ["⏳ Đang thực hiện", "🟢 Đã hoàn thành"])
             
             if st.form_submit_button("➕ Thêm vào danh sách (Nhấn Enter)"):
