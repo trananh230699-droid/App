@@ -22,21 +22,33 @@ st.set_page_config(
     layout="wide"
 )
 # ==========================================
-# ÉP LOGO NÉT CĂNG CHO MÀN HÌNH CHÍNH (IOS/ANDROID)
+# ÉP LOGO NÉT CĂNG CHO MÀN HÌNH CHÍNH (IOS/ANDROID) - ĐÃ SỬA LỖI IFRAME
 # ==========================================
+import base64
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read()).decode()
         
     apple_icon_html = f"""
     <script>
-        var link = document.createElement('link');
-        link.rel = 'apple-touch-icon';
-        link.href = 'data:image/png;base64,{encoded_string}';
-        document.head.appendChild(link);
+        // Xuyên thủng lớp mặt nạ iframe của Streamlit để cắm thẳng vào thẻ Head gốc
+        var parentDocument = window.parent.document;
+        
+        // Cắm icon cho Apple (iPhone/iPad)
+        var appleLink = parentDocument.createElement('link');
+        appleLink.rel = 'apple-touch-icon';
+        appleLink.href = 'data:image/png;base64,{encoded_string}';
+        parentDocument.head.appendChild(appleLink);
+        
+        // Cắm icon chuẩn cho Android/Trình duyệt chung
+        var iconLink = parentDocument.createElement('link');
+        iconLink.rel = 'icon';
+        iconLink.href = 'data:image/png;base64,{encoded_string}';
+        parentDocument.head.appendChild(iconLink);
     </script>
     """
-    st.markdown(apple_icon_html, unsafe_allow_html=True)
+    # Lệnh render HTML xuyên thấu
+    components.html(apple_icon_html, height=0, width=0)
 # ==========================================
 # ĐỒNG BỘ MÚI GIỜ VIỆT NAM (UTC+7)
 # ==========================================
